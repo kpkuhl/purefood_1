@@ -34,10 +34,14 @@
         }
         .button-container {
             display: flex;
+            flex-direction: column;
             gap: 1rem;
             margin-top: 2rem;
-            flex-wrap: wrap;
-            justify-content: center;
+            align-items: center;
+        }
+        .button-row {
+            display: flex;
+            gap: 1rem;
         }
         .btn {
             padding: 1rem 2rem;
@@ -76,8 +80,10 @@
     <h2>Crowdfunded lab testing that reveals what's really in everyday foods — so you have data, not guesswork</h2>
 
     <div class="button-container">
-        <button class="btn btn-secondary" onclick="handleFoodTestRequest()">Food Test Request</button>
-        <button class="btn btn-secondary" onclick="handleViewResults()">View Results</button>
+        <div class="button-row">
+            <button class="btn btn-secondary" onclick="handleFoodTestRequest()">Food Test Request</button>
+            <button class="btn btn-secondary" onclick="handleViewResults()">View Results</button>
+        </div>
         <button class="btn btn-secondary" onclick="handleFoodsBenefit()">Foods Most Likely to Benefit From Testing</button>
     </div>
 
