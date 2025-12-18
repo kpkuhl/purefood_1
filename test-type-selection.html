@@ -125,6 +125,31 @@
             height: 20px;
             margin-right: 0.5rem;
         }
+        .pricing-summary {
+            background-color: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            border: 2px solid #e5e7eb;
+        }
+        .pricing-summary h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .pricing-line {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.75rem 0;
+            color: #666;
+        }
+        .pricing-line.total {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #374151;
+            padding-top: 0.75rem;
+            border-top: 2px solid #d1d5db;
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -170,6 +195,23 @@
             </div>
         </div>
 
+        <div class="pricing-summary" id="pricing-summary" style="display: none;">
+            <h3>Cost Breakdown</h3>
+            <div class="pricing-line">
+                <span>Product Price:</span>
+                <span id="price-product">$0.00</span>
+            </div>
+            <div id="test-prices"></div>
+            <div class="pricing-line">
+                <span>Overhead:</span>
+                <span>$100.00</span>
+            </div>
+            <div class="pricing-line total">
+                <span>Total:</span>
+                <span id="price-total">$0.00</span>
+            </div>
+        </div>
+
         <div class="status" id="status"></div>
 
         <button id="submit-btn" class="btn btn-primary" onclick="submitTestRequest()" disabled>
@@ -182,9 +224,10 @@
     <script>
         let selectedTests = new Set();
         let productData = null;
+        let testPricing = null;
 
         // Load product data from sessionStorage
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             const storedData = sessionStorage.getItem('pendingTestRequest');
 
             if (!storedData) {
@@ -199,7 +242,40 @@
             document.getElementById('product-name').textContent = productData.productName;
             document.getElementById('product-brand').textContent = productData.brand;
             document.getElementById('product-barcode').textContent = productData.barcode;
+
+            // Fetch test pricing
+            await loadTestPricing();
         });
+
+        async function loadTestPricing() {
+            try {
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (!config.supabaseUrl || !config.supabaseKey) {
+                    console.error('Supabase configuration is missing');
+                    return;
+                }
+
+                const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+
+                // Fetch pricing data (assuming there's one row with current pricing)
+                const { data, error } = await supabase
+                    .from('test_pricing')
+                    .select('*')
+                    .limit(1)
+                    .single();
+
+                if (error) {
+                    console.error('Error fetching test pricing:', error);
+                    return;
+                }
+
+                testPricing = data;
+            } catch (error) {
+                console.error('Error loading test pricing:', error);
+            }
+        }
 
         function toggleTestType(testType) {
             const card = event.currentTarget;
@@ -215,7 +291,73 @@
             // Enable submit button if at least one test is selected
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = selectedTests.size === 0;
+
+            // Update pricing summary
+            updatePricingSummary();
         }
+
+        function formatCurrency(cents) {
+            return '$' + (cents / 100).toFixed(2);
+        }
+
+        function updatePricingSummary() {
+            const pricingSummary = document.getElementById('pricing-summary');
+            const priceInput = document.getElementById('product-price');
+            const productPrice = parseFloat(priceInput.value) || 0;
+            const productPriceCents = Math.round(productPrice * 100);
+
+            if (selectedTests.size === 0) {
+                pricingSummary.style.display = 'none';
+                return;
+            }
+
+            pricingSummary.style.display = 'block';
+
+            // Display product price
+            document.getElementById('price-product').textContent = formatCurrency(productPriceCents);
+
+            // Calculate test prices
+            let testPricesHtml = '';
+            let testPricesTotal = 0;
+
+            if (testPricing) {
+                const testNameMap = {
+                    'heavy_metals': { label: 'Heavy Metals Test', field: 'heavy_metals' },
+                    'pesticides': { label: 'Pesticide Test', field: 'pesticide' },
+                    'pfas': { label: 'PFAS Test', field: 'PFAS' },
+                    'microplastics': { label: 'Microplastic Test', field: 'microplastic' }
+                };
+
+                selectedTests.forEach(testType => {
+                    const testInfo = testNameMap[testType];
+                    if (testInfo && testPricing[testInfo.field]) {
+                        const price = testPricing[testInfo.field];
+                        testPricesTotal += price;
+                        testPricesHtml += `
+                            <div class="pricing-line">
+                                <span>${testInfo.label}:</span>
+                                <span>${formatCurrency(price)}</span>
+                            </div>
+                        `;
+                    }
+                });
+            }
+
+            document.getElementById('test-prices').innerHTML = testPricesHtml;
+
+            // Calculate total (product + tests + overhead)
+            const overheadCents = 10000; // $100.00
+            const totalCents = productPriceCents + testPricesTotal + overheadCents;
+            document.getElementById('price-total').textContent = formatCurrency(totalCents);
+        }
+
+        // Update pricing when product price changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const priceInput = document.getElementById('product-price');
+            if (priceInput) {
+                priceInput.addEventListener('input', updatePricingSummary);
+            }
+        });
 
         async function submitTestRequest() {
             if (selectedTests.size === 0) {
