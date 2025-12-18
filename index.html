@@ -68,8 +68,10 @@
                 const configResponse = await fetch('/api/config');
                 const config = await configResponse.json();
 
+                console.log('Config received:', config.debug);
+
                 if (!config.supabaseUrl || !config.supabaseKey) {
-                    throw new Error('Supabase configuration is missing');
+                    throw new Error('Supabase configuration is missing. Check Vercel environment variables.');
                 }
 
                 const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
@@ -93,7 +95,7 @@
                 }
             } catch (error) {
                 container.innerHTML = `<p class="error">Error loading data: ${error.message}</p>`;
-                console.error('Error:', error);
+                console.error('Full error details:', error);
             }
         }
 
