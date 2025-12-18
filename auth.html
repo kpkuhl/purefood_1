@@ -190,7 +190,7 @@
     </div>
 
     <script>
-        let supabase = null;
+        let supabaseClient = null;
 
         // Initialize Supabase client
         async function initSupabase() {
@@ -202,7 +202,7 @@
                     throw new Error('Supabase configuration is missing');
                 }
 
-                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+                supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
             } catch (error) {
                 console.error('Error initializing Supabase:', error);
             }
@@ -263,7 +263,7 @@
             status.className = 'status';
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password,
                 });
@@ -319,7 +319,7 @@
             status.className = 'status';
 
             try {
-                const { data, error } = await supabase.auth.signUp({
+                const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
                 });
