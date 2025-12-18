@@ -122,6 +122,21 @@
         .form-content.active {
             display: block;
         }
+        .form-link {
+            text-align: center;
+            margin-top: 1rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .form-link a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .form-link a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -145,6 +160,9 @@
             </div>
             <div class="status" id="signin-status"></div>
             <button class="btn btn-primary" onclick="signIn()">Sign In</button>
+            <div class="form-link">
+                Don't have an account? <a onclick="switchTab('signup')">Sign up</a>
+            </div>
         </div>
 
         <!-- Sign Up Form -->
@@ -163,6 +181,9 @@
             </div>
             <div class="status" id="signup-status"></div>
             <button class="btn btn-primary" onclick="signUp()">Sign Up</button>
+            <div class="form-link">
+                Already have an account? <a onclick="switchTab('signin')">Sign in</a>
+            </div>
         </div>
 
         <button class="btn btn-secondary" onclick="goBack()">Back to Home</button>
@@ -259,7 +280,13 @@
 
             } catch (error) {
                 console.error('Error signing in:', error);
-                status.textContent = error.message || 'Error signing in. Please try again.';
+
+                // Check if it's an invalid credentials error and suggest signing up
+                if (error.message && error.message.toLowerCase().includes('invalid')) {
+                    status.innerHTML = 'Invalid credentials. <a onclick="switchTab(\'signup\')" style="color: #2563eb; cursor: pointer; text-decoration: underline;">Create an account?</a>';
+                } else {
+                    status.textContent = error.message || 'Error signing in. Please try again.';
+                }
                 status.className = 'status error';
             }
         }
