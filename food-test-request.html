@@ -196,12 +196,22 @@
         function confirmProduct() {
             const barcode = document.getElementById('barcode-value').textContent;
             const productName = document.getElementById('product-name').textContent;
+            const productBrand = document.getElementById('product-brand').textContent;
+            const productCategory = document.getElementById('product-category').textContent;
 
-            // Store product info and proceed to next step
-            // For now, just show an alert
-            alert(`Product confirmed!\nBarcode: ${barcode}\nProduct: ${productName}\n\nNext: Submit test request`);
+            // Store product info in sessionStorage
+            const productData = {
+                barcode: barcode,
+                productName: productName,
+                brand: productBrand,
+                category: productCategory,
+                timestamp: new Date().toISOString()
+            };
 
-            // TODO: Navigate to next step or submit to Supabase
+            sessionStorage.setItem('pendingTestRequest', JSON.stringify(productData));
+
+            // Navigate to test type selection page
+            window.location.href = '/test-type-selection.html';
         }
 
         function rescan() {

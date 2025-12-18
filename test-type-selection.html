@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Test Type</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        .product-summary {
+            background-color: #f9fafb;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        .product-summary h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .product-summary p {
+            margin: 0.5rem 0;
+            color: #666;
+        }
+        .test-type-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .test-card {
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        .test-card:hover {
+            border-color: #2563eb;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+            transform: translateY(-2px);
+        }
+        .test-card.selected {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+        .test-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: #374151;
+            font-size: 1.1rem;
+        }
+        .test-card p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-primary:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 2px solid #d1d5db;
+        }
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+        }
+        .status {
+            text-align: center;
+            color: #666;
+            margin: 1rem 0;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .checkbox-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Select Test Type</h1>
+
+    <div class="container">
+        <div class="product-summary">
+            <h3>Product</h3>
+            <p><strong>Name:</strong> <span id="product-name"></span></p>
+            <p><strong>Brand:</strong> <span id="product-brand"></span></p>
+            <p><strong>Barcode:</strong> <span id="product-barcode"></span></p>
+        </div>
+
+        <h3 style="margin-bottom: 1rem;">What would you like to test for?</h3>
+
+        <div class="test-type-grid">
+            <div class="test-card" onclick="toggleTestType('heavy_metals')">
+                <h4>Heavy Metals</h4>
+                <p>Lead, mercury, cadmium, arsenic</p>
+            </div>
+
+            <div class="test-card" onclick="toggleTestType('pesticides')">
+                <h4>Pesticides</h4>
+                <p>Agricultural chemical residues</p>
+            </div>
+
+            <div class="test-card" onclick="toggleTestType('pfas')">
+                <h4>PFAS</h4>
+                <p>Forever chemicals</p>
+            </div>
+
+            <div class="test-card" onclick="toggleTestType('microplastics')">
+                <h4>Microplastics</h4>
+                <p>Plastic particle contamination</p>
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <button id="submit-btn" class="btn btn-primary" onclick="submitTestRequest()" disabled>
+            Submit Test Request
+        </button>
+
+        <button class="btn btn-secondary" onclick="goBack()">Back to Product Selection</button>
+    </div>
+
+    <script>
+        let selectedTests = new Set();
+        let productData = null;
+
+        // Load product data from sessionStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const storedData = sessionStorage.getItem('pendingTestRequest');
+
+            if (!storedData) {
+                alert('No product data found. Please start over.');
+                window.location.href = '/food-test-request.html';
+                return;
+            }
+
+            productData = JSON.parse(storedData);
+
+            // Display product info
+            document.getElementById('product-name').textContent = productData.productName;
+            document.getElementById('product-brand').textContent = productData.brand;
+            document.getElementById('product-barcode').textContent = productData.barcode;
+        });
+
+        function toggleTestType(testType) {
+            const card = event.currentTarget;
+
+            if (selectedTests.has(testType)) {
+                selectedTests.delete(testType);
+                card.classList.remove('selected');
+            } else {
+                selectedTests.add(testType);
+                card.classList.add('selected');
+            }
+
+            // Enable submit button if at least one test is selected
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = selectedTests.size === 0;
+        }
+
+        async function submitTestRequest() {
+            if (selectedTests.size === 0) {
+                alert('Please select at least one test type');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submit-btn');
+            const status = document.getElementById('status');
+
+            submitBtn.disabled = true;
+            status.textContent = 'Submitting test request...';
+
+            try {
+                // Fetch Supabase config
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (!config.supabaseUrl || !config.supabaseKey) {
+                    throw new Error('Supabase configuration is missing');
+                }
+
+                const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+
+                // Prepare test request data
+                const testRequest = {
+                    barcode: productData.barcode,
+                    product_name: productData.productName,
+                    brand: productData.brand,
+                    category: productData.category,
+                    test_types: Array.from(selectedTests),
+                    status: 'pending',
+                    created_at: new Date().toISOString()
+                };
+
+                // Insert into Supabase
+                const { data, error } = await supabase
+                    .from('test_requests')
+                    .insert([testRequest])
+                    .select();
+
+                if (error) throw error;
+
+                status.textContent = 'Test request submitted successfully!';
+
+                // Clear session storage
+                sessionStorage.removeItem('pendingTestRequest');
+
+                // Show success message
+                setTimeout(() => {
+                    alert('Your test request has been submitted!\n\nWe will notify you when testing begins.');
+                    window.location.href = '/';
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error submitting test request:', error);
+                status.textContent = 'Error submitting request. Please try again.';
+                submitBtn.disabled = false;
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/food-test-request.html';
+        }
+    </script>
+</body>
+</html>
