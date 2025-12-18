@@ -234,13 +234,12 @@
 
                 // Prepare test request data
                 const testRequest = {
-                    barcode: productData.barcode,
+                    barcode: parseInt(productData.barcode),
                     product_name: productData.productName,
                     brand: productData.brand,
                     category: productData.category,
-                    test_types: Array.from(selectedTests),
-                    status: 'pending',
-                    created_at: new Date().toISOString()
+                    test_types: JSON.stringify(Array.from(selectedTests)),
+                    status: 'pending'
                 };
 
                 // Insert into Supabase
