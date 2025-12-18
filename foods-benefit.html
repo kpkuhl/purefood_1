@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foods Most Likely to Benefit From Testing</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .quadrants-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+        .quadrant {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .quadrant h2 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-size: 1.3rem;
+        }
+        .quadrant h3 {
+            margin: 0 0 1rem 0;
+            color: #666;
+            font-size: 0.9rem;
+            font-weight: normal;
+        }
+        .quadrant ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .quadrant li {
+            padding: 0.5rem 0;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .quadrant li:last-child {
+            border-bottom: none;
+        }
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 2px solid #d1d5db;
+        }
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        @media (max-width: 768px) {
+            .quadrants-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Foods Most Likely to Benefit From Testing</h1>
+
+    <div class="quadrants-container">
+        <div class="quadrant">
+            <h2>Heavy Metals</h2>
+            <h3>Lead, Arsenic, Cadmium, Mercury</h3>
+            <ul>
+                <li>Dark chocolate and cocoa products</li>
+                <li>Spices (cinnamon, turmeric, chili powder)</li>
+                <li>Rice and rice-based foods</li>
+                <li>Seafood (especially large predatory fish)</li>
+                <li>Seaweed and seaweed snacks</li>
+                <li>Leafy greens</li>
+                <li>Root vegetables</li>
+                <li>Legumes</li>
+            </ul>
+        </div>
+
+        <div class="quadrant">
+            <h2>PFAS</h2>
+            <h3>Forever Chemicals</h3>
+            <ul>
+                <li>Coming soon...</li>
+            </ul>
+        </div>
+
+        <div class="quadrant">
+            <h2>Microplastics</h2>
+            <h3>Plastic Particle Contamination</h3>
+            <ul>
+                <li>Coming soon...</li>
+            </ul>
+        </div>
+
+        <div class="quadrant">
+            <h2>Pesticides</h2>
+            <h3>Agricultural Chemical Residues</h3>
+            <ul>
+                <li>Coming soon...</li>
+            </ul>
+        </div>
+    </div>
+
+    <button class="btn btn-secondary" onclick="goBack()">Back to Home</button>
+
+    <script>
+        function goBack() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
