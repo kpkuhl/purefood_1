@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In / Sign Up</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 4px;
+            background-color: #f3f4f6;
+            color: #374151;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .tab.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .tab:hover:not(.active) {
+            background-color: #e5e7eb;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-primary:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 2px solid #d1d5db;
+        }
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+        }
+        .status {
+            text-align: center;
+            color: #666;
+            margin: 1rem 0;
+        }
+        .status.error {
+            color: #dc2626;
+        }
+        .status.success {
+            color: #059669;
+        }
+        .form-content {
+            display: none;
+        }
+        .form-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sign In / Sign Up</h1>
+
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('signin')">Sign In</div>
+            <div class="tab" onclick="switchTab('signup')">Sign Up</div>
+        </div>
+
+        <!-- Sign In Form -->
+        <div id="signin-form" class="form-content active">
+            <div class="form-group">
+                <label for="signin-email">Email</label>
+                <input type="email" id="signin-email" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+                <label for="signin-password">Password</label>
+                <input type="password" id="signin-password" placeholder="Your password" required>
+            </div>
+            <div class="status" id="signin-status"></div>
+            <button class="btn btn-primary" onclick="signIn()">Sign In</button>
+        </div>
+
+        <!-- Sign Up Form -->
+        <div id="signup-form" class="form-content">
+            <div class="form-group">
+                <label for="signup-email">Email</label>
+                <input type="email" id="signup-email" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" placeholder="At least 6 characters" required>
+            </div>
+            <div class="form-group">
+                <label for="signup-password-confirm">Confirm Password</label>
+                <input type="password" id="signup-password-confirm" placeholder="Confirm your password" required>
+            </div>
+            <div class="status" id="signup-status"></div>
+            <button class="btn btn-primary" onclick="signUp()">Sign Up</button>
+        </div>
+
+        <button class="btn btn-secondary" onclick="goBack()">Back to Home</button>
+    </div>
+
+    <script>
+        let supabase = null;
+
+        // Initialize Supabase client
+        async function initSupabase() {
+            try {
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (!config.supabaseUrl || !config.supabaseKey) {
+                    throw new Error('Supabase configuration is missing');
+                }
+
+                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+            } catch (error) {
+                console.error('Error initializing Supabase:', error);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initSupabase();
+
+            // Allow Enter key to submit on sign in form
+            document.getElementById('signin-email').addEventListener('keypress', handleEnterKey);
+            document.getElementById('signin-password').addEventListener('keypress', handleEnterKey);
+
+            // Allow Enter key to submit on sign up form
+            document.getElementById('signup-email').addEventListener('keypress', handleEnterKeySignup);
+            document.getElementById('signup-password').addEventListener('keypress', handleEnterKeySignup);
+            document.getElementById('signup-password-confirm').addEventListener('keypress', handleEnterKeySignup);
+        });
+
+        function handleEnterKey(e) {
+            if (e.key === 'Enter') {
+                signIn();
+            }
+        }
+
+        function handleEnterKeySignup(e) {
+            if (e.key === 'Enter') {
+                signUp();
+            }
+        }
+
+        function switchTab(tab) {
+            // Update tab styling
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Update form visibility
+            document.querySelectorAll('.form-content').forEach(f => f.classList.remove('active'));
+            document.getElementById(`${tab}-form`).classList.add('active');
+
+            // Clear status messages
+            document.getElementById('signin-status').textContent = '';
+            document.getElementById('signup-status').textContent = '';
+        }
+
+        async function signIn() {
+            const email = document.getElementById('signin-email').value.trim();
+            const password = document.getElementById('signin-password').value;
+            const status = document.getElementById('signin-status');
+
+            if (!email || !password) {
+                status.textContent = 'Please enter email and password';
+                status.className = 'status error';
+                return;
+            }
+
+            status.textContent = 'Signing in...';
+            status.className = 'status';
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) throw error;
+
+                status.textContent = 'Sign in successful!';
+                status.className = 'status success';
+
+                // Redirect to home page after successful sign in
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error signing in:', error);
+                status.textContent = error.message || 'Error signing in. Please try again.';
+                status.className = 'status error';
+            }
+        }
+
+        async function signUp() {
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value;
+            const passwordConfirm = document.getElementById('signup-password-confirm').value;
+            const status = document.getElementById('signup-status');
+
+            if (!email || !password || !passwordConfirm) {
+                status.textContent = 'Please fill in all fields';
+                status.className = 'status error';
+                return;
+            }
+
+            if (password.length < 6) {
+                status.textContent = 'Password must be at least 6 characters';
+                status.className = 'status error';
+                return;
+            }
+
+            if (password !== passwordConfirm) {
+                status.textContent = 'Passwords do not match';
+                status.className = 'status error';
+                return;
+            }
+
+            status.textContent = 'Creating account...';
+            status.className = 'status';
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) throw error;
+
+                status.textContent = 'Account created! Check your email to confirm your account.';
+                status.className = 'status success';
+
+                // Clear form
+                document.getElementById('signup-email').value = '';
+                document.getElementById('signup-password').value = '';
+                document.getElementById('signup-password-confirm').value = '';
+
+            } catch (error) {
+                console.error('Error signing up:', error);
+                status.textContent = error.message || 'Error creating account. Please try again.';
+                status.className = 'status error';
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

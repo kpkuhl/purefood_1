@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 900px;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+        .user-info {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .user-info p {
+            margin: 0.5rem 0;
+            color: #666;
+        }
+        .user-info strong {
+            color: #374151;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin: 2rem 0 1rem 0;
+        }
+        .request-card {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 2px solid #e5e7eb;
+        }
+        .request-card h3 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-size: 1.2rem;
+        }
+        .request-card p {
+            margin: 0.25rem 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .progress-container {
+            margin: 1rem 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background-color: #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #10b981;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .status-testing {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .status-complete {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 2px solid #d1d5db;
+        }
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+        }
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 3rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 2px dashed #d1d5db;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Profile</h1>
+
+    <div class="container">
+        <div class="user-info">
+            <h2>Account Information</h2>
+            <p><strong>Email:</strong> <span id="user-email">Loading...</span></p>
+            <p><strong>Member since:</strong> <span id="user-since">Loading...</span></p>
+        </div>
+
+        <h2 class="section-title">My Test Requests</h2>
+        <div id="my-requests" class="loading">Loading your test requests...</div>
+
+        <h2 class="section-title">My Pledges</h2>
+        <div id="my-pledges" class="loading">Loading your pledges...</div>
+
+        <button class="btn btn-secondary" onclick="goBack()" style="margin-top: 2rem;">Back to Home</button>
+    </div>
+
+    <script>
+        let supabase = null;
+        let currentUser = null;
+
+        // Initialize Supabase and load user data
+        document.addEventListener('DOMContentLoaded', async function() {
+            await initAuth();
+
+            if (!currentUser) {
+                alert('Please sign in to view your profile');
+                window.location.href = '/auth.html';
+                return;
+            }
+
+            displayUserInfo();
+            await loadMyRequests();
+            await loadMyPledges();
+        });
+
+        async function initAuth() {
+            try {
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (!config.supabaseUrl || !config.supabaseKey) {
+                    throw new Error('Supabase configuration is missing');
+                }
+
+                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+
+                // Get current session
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (session) {
+                    currentUser = session.user;
+                }
+            } catch (error) {
+                console.error('Error initializing auth:', error);
+            }
+        }
+
+        function displayUserInfo() {
+            document.getElementById('user-email').textContent = currentUser.email;
+            const createdDate = new Date(currentUser.created_at);
+            document.getElementById('user-since').textContent = createdDate.toLocaleDateString();
+        }
+
+        async function loadMyRequests() {
+            const requestsContainer = document.getElementById('my-requests');
+
+            try {
+                // Fetch user's test requests
+                const { data: requests, error } = await supabase
+                    .from('test_requests')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!requests || requests.length === 0) {
+                    requestsContainer.innerHTML = `
+                        <div class="empty-state">
+                            <p style="font-size: 1.1rem; margin-bottom: 1rem;">You haven't submitted any test requests yet.</p>
+                            <p>Get started by requesting a food test!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Render request cards
+                requestsContainer.innerHTML = requests.map(request => {
+                    const testTypes = JSON.parse(request.test_types || '[]');
+                    const testTypeLabels = {
+                        'heavy_metals': 'Heavy Metals',
+                        'pesticides': 'Pesticides',
+                        'pfas': 'PFAS',
+                        'microplastics': 'Microplastics'
+                    };
+                    const testTypesDisplay = testTypes.map(t => testTypeLabels[t] || t).join(', ');
+
+                    // Calculate funding progress
+                    const currentFunding = request.current_funding || 0;
+                    const testCost = request.test_cost || 0;
+                    const fundingPercentage = testCost > 0 ? Math.min(Math.round((currentFunding / testCost) * 100), 100) : 0;
+
+                    // Status badge
+                    const statusClass = `status-${request.status}`;
+                    const statusText = request.status.charAt(0).toUpperCase() + request.status.slice(1);
+
+                    return `
+                        <div class="request-card">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                                <h3>${request.product_name || 'Unknown Product'}</h3>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
+                            </div>
+                            <p><strong>Brand:</strong> ${request.brand || 'Unknown'}</p>
+                            <p><strong>Tests:</strong> ${testTypesDisplay || 'Not specified'}</p>
+                            <p><strong>Submitted:</strong> ${new Date(request.created_at).toLocaleDateString()}</p>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${fundingPercentage}%">
+                                        ${fundingPercentage}%
+                                    </div>
+                                </div>
+                                <div class="progress-info">
+                                    <span>$${(currentFunding / 100).toFixed(2)} raised</span>
+                                    <span>Goal: $${(testCost / 100).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading test requests:', error);
+                requestsContainer.innerHTML = '<p style="text-align: center; color: #dc2626;">Error loading your test requests. Please try again later.</p>';
+            }
+        }
+
+        async function loadMyPledges() {
+            const pledgesContainer = document.getElementById('my-pledges');
+
+            try {
+                // Fetch user's pledges with test request info
+                const { data: pledges, error } = await supabase
+                    .from('pledges')
+                    .select(`
+                        *,
+                        test_requests (
+                            id,
+                            product_name,
+                            brand,
+                            status
+                        )
+                    `)
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!pledges || pledges.length === 0) {
+                    pledgesContainer.innerHTML = `
+                        <div class="empty-state">
+                            <p style="font-size: 1.1rem; margin-bottom: 1rem;">You haven't made any pledges yet.</p>
+                            <p>Support a test request on the home page!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Calculate total pledged
+                const totalPledged = pledges.reduce((sum, pledge) => sum + (pledge.amount || 0), 0);
+
+                // Render pledge cards
+                pledgesContainer.innerHTML = `
+                    <p style="margin-bottom: 1.5rem; color: #374151;">
+                        <strong>Total Pledged:</strong> $${(totalPledged / 100).toFixed(2)}
+                    </p>
+                    ${pledges.map(pledge => {
+                        const testRequest = pledge.test_requests;
+                        const statusClass = testRequest ? `status-${testRequest.status}` : 'status-pending';
+                        const statusText = testRequest ? testRequest.status.charAt(0).toUpperCase() + testRequest.status.slice(1) : 'Unknown';
+
+                        return `
+                            <div class="request-card">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                    <h3>${testRequest?.product_name || 'Unknown Product'}</h3>
+                                    <span class="status-badge ${statusClass}">${statusText}</span>
+                                </div>
+                                <p><strong>Brand:</strong> ${testRequest?.brand || 'Unknown'}</p>
+                                <p><strong>Your Pledge:</strong> $${(pledge.amount / 100).toFixed(2)}</p>
+                                <p><strong>Pledged on:</strong> ${new Date(pledge.created_at).toLocaleDateString()}</p>
+                            </div>
+                        `;
+                    }).join('')}
+                `;
+
+            } catch (error) {
+                console.error('Error loading pledges:', error);
+                pledgesContainer.innerHTML = '<p style="text-align: center; color: #dc2626;">Error loading your pledges. Please try again later.</p>';
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

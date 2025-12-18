@@ -164,6 +164,15 @@
     </style>
 </head>
 <body>
+    <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 1rem;">
+        <button id="profile-btn" class="btn btn-secondary" onclick="goToProfile()" style="padding: 0.5rem 1rem; font-size: 0.9rem; display: none;">
+            My Profile
+        </button>
+        <button id="auth-btn" class="btn btn-secondary" onclick="handleAuth()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+            Sign In
+        </button>
+    </div>
+
     <h1>Be Confident in the Food You Eat</h1>
     <h2>Crowdfunded lab testing for everyday foods — so you have data, not guesswork</h2>
 
@@ -181,7 +190,82 @@
     </div>
 
     <script>
+        let supabase = null;
+        let currentUser = null;
+
+        // Initialize Supabase and check auth state
+        async function initAuth() {
+            try {
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (!config.supabaseUrl || !config.supabaseKey) {
+                    console.error('Supabase configuration is missing');
+                    return;
+                }
+
+                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+
+                // Get current session
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (session) {
+                    currentUser = session.user;
+                    updateAuthButton(true);
+                } else {
+                    updateAuthButton(false);
+                }
+
+                // Listen for auth changes
+                supabase.auth.onAuthStateChange((event, session) => {
+                    if (session) {
+                        currentUser = session.user;
+                        updateAuthButton(true);
+                    } else {
+                        currentUser = null;
+                        updateAuthButton(false);
+                    }
+                });
+            } catch (error) {
+                console.error('Error initializing auth:', error);
+            }
+        }
+
+        function updateAuthButton(isSignedIn) {
+            const authBtn = document.getElementById('auth-btn');
+            const profileBtn = document.getElementById('profile-btn');
+            if (isSignedIn) {
+                authBtn.textContent = 'Sign Out';
+                profileBtn.style.display = 'inline-block';
+            } else {
+                authBtn.textContent = 'Sign In';
+                profileBtn.style.display = 'none';
+            }
+        }
+
+        function goToProfile() {
+            window.location.href = '/profile.html';
+        }
+
+        async function handleAuth() {
+            if (currentUser) {
+                // Sign out
+                await supabase.auth.signOut();
+                currentUser = null;
+                updateAuthButton(false);
+                alert('You have been signed out');
+            } else {
+                // Redirect to sign in page
+                window.location.href = '/auth.html';
+            }
+        }
+
         function handleFoodTestRequest() {
+            if (!currentUser) {
+                alert('Please sign in to request a food test');
+                window.location.href = '/auth.html';
+                return;
+            }
             window.location.href = '/food-test-request.html';
         }
 
@@ -196,22 +280,19 @@
 
         // Load test requests on page load
         document.addEventListener('DOMContentLoaded', async function() {
+            await initAuth();
             await loadTestRequests();
         });
 
         async function loadTestRequests() {
             const requestsList = document.getElementById('requests-list');
 
+            if (!supabase) {
+                requestsList.innerHTML = '<p style="text-align: center; color: #dc2626;">Unable to load test requests. Please refresh the page.</p>';
+                return;
+            }
+
             try {
-                // Fetch Supabase config
-                const configResponse = await fetch('/api/config');
-                const config = await configResponse.json();
-
-                if (!config.supabaseUrl || !config.supabaseKey) {
-                    throw new Error('Supabase configuration is missing');
-                }
-
-                const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
 
                 // Fetch all pending test requests
                 const { data: requests, error } = await supabase
@@ -283,6 +364,12 @@
         }
 
         async function submitPledge(requestId) {
+            if (!currentUser) {
+                alert('Please sign in to support a test');
+                window.location.href = '/auth.html';
+                return;
+            }
+
             const pledgeInput = document.getElementById(`pledge-${requestId}`);
             const pledgeAmount = parseFloat(pledgeInput.value);
 
@@ -294,15 +381,19 @@
             const pledgeAmountCents = Math.round(pledgeAmount * 100);
 
             try {
-                // Fetch Supabase config
-                const configResponse = await fetch('/api/config');
-                const config = await configResponse.json();
 
-                if (!config.supabaseUrl || !config.supabaseKey) {
-                    throw new Error('Supabase configuration is missing');
-                }
+                // Create pledge record
+                const pledge = {
+                    test_request_id: requestId,
+                    user_id: currentUser.id,
+                    amount: pledgeAmountCents
+                };
 
-                const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+                const { error: pledgeError } = await supabase
+                    .from('pledges')
+                    .insert([pledge]);
+
+                if (pledgeError) throw pledgeError;
 
                 // Get current test request
                 const { data: request, error: fetchError } = await supabase

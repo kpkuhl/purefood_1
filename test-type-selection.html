@@ -225,9 +225,20 @@
         let selectedTests = new Set();
         let productData = null;
         let testPricing = null;
+        let supabase = null;
+        let currentUser = null;
 
         // Load product data from sessionStorage
         document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize Supabase and check auth
+            await initAuth();
+
+            if (!currentUser) {
+                alert('Please sign in to submit a test request');
+                window.location.href = '/auth.html';
+                return;
+            }
+
             const storedData = sessionStorage.getItem('pendingTestRequest');
 
             if (!storedData) {
@@ -247,18 +258,30 @@
             await loadTestPricing();
         });
 
-        async function loadTestPricing() {
+        async function initAuth() {
             try {
                 const configResponse = await fetch('/api/config');
                 const config = await configResponse.json();
 
                 if (!config.supabaseUrl || !config.supabaseKey) {
-                    console.error('Supabase configuration is missing');
-                    return;
+                    throw new Error('Supabase configuration is missing');
                 }
 
-                const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
 
+                // Get current session
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (session) {
+                    currentUser = session.user;
+                }
+            } catch (error) {
+                console.error('Error initializing auth:', error);
+            }
+        }
+
+        async function loadTestPricing() {
+            try {
                 // Fetch pricing data (assuming there's one row with current pricing)
                 const { data, error } = await supabase
                     .from('test_pricing')
@@ -398,16 +421,6 @@
                 const overheadCents = 10000; // $100.00
                 const totalTestCost = itemPriceCents + testPricesTotal + overheadCents;
 
-                // Fetch Supabase config
-                const configResponse = await fetch('/api/config');
-                const config = await configResponse.json();
-
-                if (!config.supabaseUrl || !config.supabaseKey) {
-                    throw new Error('Supabase configuration is missing');
-                }
-
-                const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
-
                 // Prepare test request data
                 const testRequest = {
                     barcode: parseInt(productData.barcode),
@@ -417,7 +430,8 @@
                     test_types: JSON.stringify(Array.from(selectedTests)),
                     status: 'pending',
                     item_price: itemPriceCents,
-                    test_cost: totalTestCost
+                    test_cost: totalTestCost,
+                    user_id: currentUser.id
                 };
 
                 // Insert into Supabase
