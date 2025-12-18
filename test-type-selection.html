@@ -138,6 +138,14 @@
             <p><strong>Barcode:</strong> <span id="product-barcode"></span></p>
         </div>
 
+        <div style="margin-bottom: 2rem;">
+            <label for="product-price" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
+                Approximate Product Price (USD)
+            </label>
+            <input type="number" id="product-price" placeholder="0.00" step="0.01" min="0"
+                   style="padding: 0.75rem; font-size: 1rem; border: 2px solid #d1d5db; border-radius: 8px; width: 100%; max-width: 200px;">
+        </div>
+
         <h3 style="margin-bottom: 1rem;">What would you like to test for?</h3>
 
         <div class="test-type-grid">
@@ -222,6 +230,11 @@
             status.textContent = 'Submitting test request...';
 
             try {
+                // Get price and convert to cents
+                const priceInput = document.getElementById('product-price');
+                const priceInDollars = parseFloat(priceInput.value) || 0;
+                const priceInCents = Math.round(priceInDollars * 100);
+
                 // Fetch Supabase config
                 const configResponse = await fetch('/api/config');
                 const config = await configResponse.json();
@@ -239,7 +252,8 @@
                     brand: productData.brand,
                     category: productData.category,
                     test_types: JSON.stringify(Array.from(selectedTests)),
-                    status: 'pending'
+                    status: 'pending',
+                    price: priceInCents
                 };
 
                 // Insert into Supabase
