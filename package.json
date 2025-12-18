@@ -1,6 +1,9 @@
 {
   "name": "purefood_1",
   "version": "1.0.0",
-  "description": "Hello World website with Supabase integration",
-  "private": true
+  "description": "Crowdfunded food testing platform with Stripe integration",
+  "private": true,
+  "dependencies": {
+    "stripe": "^17.4.0"
+  }
 }

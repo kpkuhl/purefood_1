@@ -171,6 +171,22 @@
                    style="padding: 0.75rem; font-size: 1rem; border: 2px solid #d1d5db; border-radius: 8px; width: 100%; max-width: 200px;">
         </div>
 
+        <div style="margin-bottom: 2rem;">
+            <label for="active-days" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
+                How long should this request remain active?
+            </label>
+            <select id="active-days" style="padding: 0.75rem; font-size: 1rem; border: 2px solid #d1d5db; border-radius: 8px; width: 100%; max-width: 200px;">
+                <option value="7">7 days</option>
+                <option value="14">14 days</option>
+                <option value="30" selected>30 days</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+            </select>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                If funding goal isn't reached by this time, all pledges will be cancelled.
+            </p>
+        </div>
+
         <h3 style="margin-bottom: 1rem;">What would you like to test for?</h3>
 
         <div class="test-type-grid">
@@ -225,7 +241,7 @@
         let selectedTests = new Set();
         let productData = null;
         let testPricing = null;
-        let supabase = null;
+        let supabaseClient = null;
         let currentUser = null;
 
         // Load product data from sessionStorage
@@ -267,10 +283,10 @@
                     throw new Error('Supabase configuration is missing');
                 }
 
-                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+                supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
 
                 // Get current session
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
 
                 if (session) {
                     currentUser = session.user;
@@ -283,7 +299,7 @@
         async function loadTestPricing() {
             try {
                 // Fetch pricing data (assuming there's one row with current pricing)
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('test_pricing')
                     .select('*')
                     .limit(1)
@@ -421,6 +437,11 @@
                 const overheadCents = 10000; // $100.00
                 const totalTestCost = itemPriceCents + testPricesTotal + overheadCents;
 
+                // Get selected time period
+                const activeDays = parseInt(document.getElementById('active-days').value);
+                const expirationDate = new Date();
+                expirationDate.setDate(expirationDate.getDate() + activeDays);
+
                 // Prepare test request data
                 const testRequest = {
                     barcode: parseInt(productData.barcode),
@@ -431,11 +452,13 @@
                     status: 'pending',
                     item_price: itemPriceCents,
                     test_cost: totalTestCost,
-                    user_id: currentUser.id
+                    user_id: currentUser.id,
+                    active_days: activeDays,
+                    expiration_date: expirationDate.toISOString()
                 };
 
                 // Insert into Supabase
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('test_requests')
                     .insert([testRequest])
                     .select();

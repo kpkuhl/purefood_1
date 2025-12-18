@@ -10,22 +10,26 @@ This table stores all food test requests submitted by users.
 **Columns:**
 - `id` (bigint, primary key, auto-increment)
 - `created_at` (timestamp with time zone, default: now())
-- `user_id` (uuid, foreign key to auth.users) - **NEW: Associates request with user**
+- `user_id` (uuid, foreign key to auth.users) - Associates request with user
 - `barcode` (bigint)
 - `product_name` (text)
 - `brand` (text)
 - `category` (text)
 - `test_types` (text) - JSON array stored as text
-- `status` (text) - values: 'pending', 'testing', 'complete'
+- `status` (text) - values: 'pending', 'testing', 'complete', 'expired', 'funded'
 - `item_price` (bigint) - price in cents
 - `test_cost` (bigint) - total cost in cents
 - `current_funding` (bigint, default: 0) - current funding in cents
+- `expiration_date` (timestamp with time zone) - **NEW: When the test request expires**
+- `active_days` (integer) - **NEW: Number of days the request remains active (1-90)**
 
 **SQL to create/modify:**
 ```sql
--- Add user_id column if upgrading existing table
+-- Add new columns if upgrading existing table
 ALTER TABLE test_requests
-ADD COLUMN user_id uuid REFERENCES auth.users(id);
+ADD COLUMN user_id uuid REFERENCES auth.users(id),
+ADD COLUMN expiration_date timestamp with time zone,
+ADD COLUMN active_days integer;
 
 -- Or create new table:
 CREATE TABLE test_requests (
@@ -40,7 +44,9 @@ CREATE TABLE test_requests (
     status text DEFAULT 'pending',
     item_price bigint,
     test_cost bigint,
-    current_funding bigint DEFAULT 0
+    current_funding bigint DEFAULT 0,
+    expiration_date timestamp with time zone,
+    active_days integer
 );
 ```
 
@@ -53,6 +59,10 @@ This table tracks individual pledges made by users to support test requests.
 - `user_id` (uuid, foreign key to auth.users)
 - `test_request_id` (bigint, foreign key to test_requests)
 - `amount` (bigint) - pledge amount in cents
+- `stripe_payment_method_id` (text) - **NEW: Stripe payment method ID from SetupIntent**
+- `stripe_setup_intent_id` (text) - **NEW: Stripe SetupIntent ID**
+- `status` (text) - **NEW: 'pending', 'charged', 'cancelled', 'failed'**
+- `charged_at` (timestamp with time zone) - **NEW: When the pledge was charged**
 
 **SQL to create:**
 ```sql
@@ -61,7 +71,11 @@ CREATE TABLE pledges (
     created_at timestamp with time zone DEFAULT now(),
     user_id uuid REFERENCES auth.users(id),
     test_request_id bigint REFERENCES test_requests(id),
-    amount bigint NOT NULL
+    amount bigint NOT NULL,
+    stripe_payment_method_id text,
+    stripe_setup_intent_id text,
+    status text DEFAULT 'pending',
+    charged_at timestamp with time zone
 );
 ```
 
@@ -156,6 +170,8 @@ Make sure you have enabled email authentication in Supabase:
 Make sure your Vercel deployment has these environment variables set:
 - `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`
 - `SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `STRIPE_SECRET_KEY` - Your Stripe secret key (from Stripe Dashboard)
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` - Your Stripe publishable key
 
 ## Testing the Setup
 
