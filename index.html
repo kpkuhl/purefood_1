@@ -36,6 +36,8 @@
             display: flex;
             gap: 1rem;
             margin-top: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         .btn {
             padding: 1rem 2rem;
@@ -76,6 +78,7 @@
     <div class="button-container">
         <button class="btn btn-secondary" onclick="handleFoodTestRequest()">Food Test Request</button>
         <button class="btn btn-secondary" onclick="handleViewResults()">View Results</button>
+        <button class="btn btn-secondary" onclick="handleFoodsBenefit()">Foods Most Likely to Benefit From Testing</button>
     </div>
 
     <script>
@@ -87,6 +90,11 @@
         function handleViewResults() {
             // Placeholder function for viewing results
             alert('View Results - Coming soon!');
+        }
+
+        function handleFoodsBenefit() {
+            // Placeholder function for foods benefit
+            alert('Foods Most Likely to Benefit From Testing - Coming soon!');
         }
     </script>
 </body>
