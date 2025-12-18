@@ -166,7 +166,7 @@
     </div>
 
     <script>
-        let supabase = null;
+        let supabaseClient = null;
         let currentUser = null;
 
         // Initialize Supabase and load user data
@@ -193,10 +193,10 @@
                     throw new Error('Supabase configuration is missing');
                 }
 
-                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+                supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
 
                 // Get current session
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
 
                 if (session) {
                     currentUser = session.user;
@@ -217,7 +217,7 @@
 
             try {
                 // Fetch user's test requests
-                const { data: requests, error } = await supabase
+                const { data: requests, error } = await supabaseClient
                     .from('test_requests')
                     .select('*')
                     .eq('user_id', currentUser.id)
@@ -290,7 +290,7 @@
 
             try {
                 // Fetch user's pledges with test request info
-                const { data: pledges, error } = await supabase
+                const { data: pledges, error } = await supabaseClient
                     .from('pledges')
                     .select(`
                         *,
