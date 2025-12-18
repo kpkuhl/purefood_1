@@ -4,23 +4,100 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello World</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
             font-family: Arial, sans-serif;
             background-color: #f0f0f0;
         }
         h1 {
             font-size: 3rem;
             color: #333;
+            margin-bottom: 2rem;
+        }
+        #data-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+        .error {
+            color: #d32f2f;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <h1>Hello World</h1>
+    <div id="data-container">
+        <div class="loading">Loading data...</div>
+    </div>
+
+    <script>
+        async function initSupabase() {
+            const container = document.getElementById('data-container');
+
+            try {
+                // Fetch Supabase config from serverless function
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (!config.supabaseUrl || !config.supabaseKey) {
+                    throw new Error('Supabase configuration is missing');
+                }
+
+                const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+
+                // Fetch data from testing table
+                const { data, error } = await supabase
+                    .from('testing')
+                    .select('id, name');
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    let html = '<table><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody>';
+                    data.forEach(row => {
+                        html += `<tr><td>${row.id}</td><td>${row.name}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p>No data found in the testing table.</p>';
+                }
+            } catch (error) {
+                container.innerHTML = `<p class="error">Error loading data: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        }
+
+        initSupabase();
+    </script>
 </body>
 </html>
