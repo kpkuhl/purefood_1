@@ -116,6 +116,14 @@
 
         <div class="status" id="status"></div>
 
+        <div style="margin: 2rem 0; text-align: center;">
+            <p style="color: #666; margin-bottom: 1rem;">Having trouble scanning?</p>
+            <input type="text" id="manual-barcode" placeholder="Enter barcode manually"
+                   style="padding: 0.75rem; font-size: 1rem; border: 2px solid #d1d5db; border-radius: 8px; width: 100%; max-width: 300px; margin-bottom: 0.5rem;">
+            <br>
+            <button class="btn btn-primary" onclick="submitManualBarcode()" style="width: auto; margin-top: 0.5rem;">Submit Barcode</button>
+        </div>
+
         <div id="result">
             <h3>Scanned Barcode</h3>
             <p><strong>Barcode:</strong> <span id="barcode-value"></span></p>
@@ -168,14 +176,44 @@
                     Html5QrcodeSupportedFormats.UPC_E,
                     Html5QrcodeSupportedFormats.CODE_128,
                     Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.ITF,
                     Html5QrcodeSupportedFormats.QR_CODE
                 ],
                 rememberLastUsedCamera: true,
-                aspectRatio: 1.0
+                aspectRatio: 1.0,
+                disableFlip: false
             };
 
             html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
             html5QrcodeScanner.render(onScanSuccess, onScanError);
+        });
+
+        function submitManualBarcode() {
+            const barcodeInput = document.getElementById('manual-barcode');
+            const barcode = barcodeInput.value.trim();
+
+            if (!barcode) {
+                alert('Please enter a barcode');
+                return;
+            }
+
+            // Stop scanner if running
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(err => console.log('Scanner already stopped'));
+            }
+
+            // Handle the manually entered barcode
+            handleScanResult(barcode);
+        }
+
+        // Allow Enter key to submit
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('manual-barcode').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    submitManualBarcode();
+                }
+            });
         });
 
         async function handleScanResult(barcode) {
@@ -223,6 +261,7 @@
 
         function rescan() {
             document.getElementById('result').classList.remove('active');
+            document.getElementById('manual-barcode').value = '';
             // Restart the scanner
             const config = {
                 fps: 10,
@@ -234,10 +273,13 @@
                     Html5QrcodeSupportedFormats.UPC_E,
                     Html5QrcodeSupportedFormats.CODE_128,
                     Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.ITF,
                     Html5QrcodeSupportedFormats.QR_CODE
                 ],
                 rememberLastUsedCamera: true,
-                aspectRatio: 1.0
+                aspectRatio: 1.0,
+                disableFlip: false
             };
             html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
             html5QrcodeScanner.render(onScanSuccess, onScanError);
