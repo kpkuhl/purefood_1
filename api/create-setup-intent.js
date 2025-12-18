@@ -7,6 +7,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('STRIPE_SECRET_KEY environment variable is not set');
+      return res.status(500).json({ error: 'Stripe is not configured. Please check environment variables.' });
+    }
+
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const { amount, test_request_id, user_email } = req.body;
 
