@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Test Request - Scan Barcode</title>
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
         body {
             display: flex;
@@ -162,7 +162,21 @@
             const startButton = document.getElementById('start-scan');
 
             try {
-                codeReader = new ZXing.BrowserBarcodeReader();
+                // Use MultiFormatReader to support multiple barcode formats
+                const hints = new Map();
+                const formats = [
+                    ZXing.BarcodeFormat.EAN_13,
+                    ZXing.BarcodeFormat.EAN_8,
+                    ZXing.BarcodeFormat.UPC_A,
+                    ZXing.BarcodeFormat.UPC_E,
+                    ZXing.BarcodeFormat.CODE_128,
+                    ZXing.BarcodeFormat.CODE_39,
+                    ZXing.BarcodeFormat.QR_CODE
+                ];
+                hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+                codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
                 status.textContent = 'Requesting camera access...';
                 startButton.style.display = 'none';
@@ -175,24 +189,32 @@
                     return;
                 }
 
-                // Use the first available camera (usually back camera on mobile)
+                // Prefer back camera on mobile devices
                 selectedDeviceId = devices[0].deviceId;
+                for (const device of devices) {
+                    if (device.label.toLowerCase().includes('back') ||
+                        device.label.toLowerCase().includes('rear')) {
+                        selectedDeviceId = device.deviceId;
+                        break;
+                    }
+                }
 
                 video.classList.add('active');
-                status.textContent = 'Point camera at barcode...';
+                status.textContent = 'Point camera at barcode... Hold steady and ensure good lighting.';
 
                 codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, err) => {
                     if (result) {
+                        console.log('Barcode detected:', result.text);
                         handleScanResult(result.text);
                         stopScanner();
                     }
                     if (err && !(err instanceof ZXing.NotFoundException)) {
-                        console.error(err);
+                        console.error('Scan error:', err);
                     }
                 });
 
             } catch (error) {
-                console.error(error);
+                console.error('Scanner initialization error:', error);
                 status.textContent = 'Error accessing camera. Please ensure camera permissions are granted.';
                 startButton.style.display = 'block';
             }
