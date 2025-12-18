@@ -372,10 +372,31 @@
             status.textContent = 'Submitting test request...';
 
             try {
-                // Get price and convert to cents
+                // Get item price and convert to cents
                 const priceInput = document.getElementById('product-price');
                 const priceInDollars = parseFloat(priceInput.value) || 0;
-                const priceInCents = Math.round(priceInDollars * 100);
+                const itemPriceCents = Math.round(priceInDollars * 100);
+
+                // Calculate test cost (item + tests + overhead)
+                let testPricesTotal = 0;
+                if (testPricing) {
+                    const testNameMap = {
+                        'heavy_metals': 'heavy_metals',
+                        'pesticides': 'pesticide',
+                        'pfas': 'PFAS',
+                        'microplastics': 'microplastic'
+                    };
+
+                    selectedTests.forEach(testType => {
+                        const field = testNameMap[testType];
+                        if (field && testPricing[field]) {
+                            testPricesTotal += testPricing[field];
+                        }
+                    });
+                }
+
+                const overheadCents = 10000; // $100.00
+                const totalTestCost = itemPriceCents + testPricesTotal + overheadCents;
 
                 // Fetch Supabase config
                 const configResponse = await fetch('/api/config');
@@ -395,7 +416,8 @@
                     category: productData.category,
                     test_types: JSON.stringify(Array.from(selectedTests)),
                     status: 'pending',
-                    price: priceInCents
+                    item_price: itemPriceCents,
+                    test_cost: totalTestCost
                 };
 
                 // Insert into Supabase
