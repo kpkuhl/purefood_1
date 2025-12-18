@@ -73,6 +73,94 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
+        .requests-container {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 3rem;
+        }
+        .requests-container h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .request-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        .request-header {
+            margin-bottom: 1rem;
+        }
+        .request-header h3 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-size: 1.2rem;
+        }
+        .request-header p {
+            margin: 0.25rem 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .progress-container {
+            margin: 1rem 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background-color: #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #10b981;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .support-section {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+        .support-input {
+            flex: 1;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+        }
+        .btn-support {
+            padding: 0.75rem 1.5rem;
+            background-color: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-support:hover {
+            background-color: #059669;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+        }
     </style>
 </head>
 <body>
@@ -85,6 +173,11 @@
             <button class="btn btn-secondary" onclick="handleViewResults()">View Results</button>
         </div>
         <button class="btn btn-secondary" onclick="handleFoodsBenefit()">Foods Most Likely to Benefit From Testing</button>
+    </div>
+
+    <div class="requests-container">
+        <h2>Current Test Requests</h2>
+        <div id="requests-list" class="loading">Loading test requests...</div>
     </div>
 
     <script>
@@ -100,6 +193,147 @@
         function handleFoodsBenefit() {
             // Placeholder function for foods benefit
             alert('Foods Most Likely to Benefit From Testing - Coming soon!');
+        }
+
+        // Load test requests on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadTestRequests();
+        });
+
+        async function loadTestRequests() {
+            const requestsList = document.getElementById('requests-list');
+
+            try {
+                // Fetch Supabase config
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (!config.supabaseUrl || !config.supabaseKey) {
+                    throw new Error('Supabase configuration is missing');
+                }
+
+                const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+
+                // Fetch all pending test requests
+                const { data: requests, error } = await supabase
+                    .from('test_requests')
+                    .select('*')
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!requests || requests.length === 0) {
+                    requestsList.innerHTML = '<p style="text-align: center; color: #666;">No test requests yet. Be the first to request a test!</p>';
+                    return;
+                }
+
+                // Render request cards
+                requestsList.innerHTML = requests.map(request => {
+                    const testTypes = JSON.parse(request.test_types || '[]');
+                    const testTypeLabels = {
+                        'heavy_metals': 'Heavy Metals',
+                        'pesticides': 'Pesticides',
+                        'pfas': 'PFAS',
+                        'microplastics': 'Microplastics'
+                    };
+                    const testTypesDisplay = testTypes.map(t => testTypeLabels[t] || t).join(', ');
+
+                    // Calculate funding progress
+                    const currentFunding = request.current_funding || 0;
+                    const testCost = request.test_cost || 0;
+                    const fundingPercentage = testCost > 0 ? Math.min(Math.round((currentFunding / testCost) * 100), 100) : 0;
+
+                    return `
+                        <div class="request-card">
+                            <div class="request-header">
+                                <h3>${request.product_name || 'Unknown Product'}</h3>
+                                <p><strong>Brand:</strong> ${request.brand || 'Unknown'}</p>
+                                <p><strong>Tests:</strong> ${testTypesDisplay || 'Not specified'}</p>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${fundingPercentage}%">
+                                        ${fundingPercentage}%
+                                    </div>
+                                </div>
+                                <div class="progress-info">
+                                    <span>$${(currentFunding / 100).toFixed(2)} raised</span>
+                                    <span>Goal: $${(testCost / 100).toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div class="support-section">
+                                <input type="number"
+                                       class="support-input"
+                                       id="pledge-${request.id}"
+                                       placeholder="Enter pledge amount"
+                                       min="1"
+                                       step="0.01">
+                                <button class="btn-support" onclick="submitPledge(${request.id})">
+                                    Support This Test
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading test requests:', error);
+                requestsList.innerHTML = '<p style="text-align: center; color: #dc2626;">Error loading test requests. Please try again later.</p>';
+            }
+        }
+
+        async function submitPledge(requestId) {
+            const pledgeInput = document.getElementById(`pledge-${requestId}`);
+            const pledgeAmount = parseFloat(pledgeInput.value);
+
+            if (!pledgeAmount || pledgeAmount <= 0) {
+                alert('Please enter a valid pledge amount');
+                return;
+            }
+
+            const pledgeAmountCents = Math.round(pledgeAmount * 100);
+
+            try {
+                // Fetch Supabase config
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (!config.supabaseUrl || !config.supabaseKey) {
+                    throw new Error('Supabase configuration is missing');
+                }
+
+                const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+
+                // Get current test request
+                const { data: request, error: fetchError } = await supabase
+                    .from('test_requests')
+                    .select('current_funding')
+                    .eq('id', requestId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                // Update current funding
+                const newFunding = (request.current_funding || 0) + pledgeAmountCents;
+
+                const { error: updateError } = await supabase
+                    .from('test_requests')
+                    .update({ current_funding: newFunding })
+                    .eq('id', requestId);
+
+                if (updateError) throw updateError;
+
+                alert(`Thank you for your pledge of $${pledgeAmount.toFixed(2)}!`);
+                pledgeInput.value = '';
+
+                // Reload the requests to show updated progress
+                await loadTestRequests();
+
+            } catch (error) {
+                console.error('Error submitting pledge:', error);
+                alert('Error submitting pledge. Please try again.');
+            }
         }
     </script>
 </body>
