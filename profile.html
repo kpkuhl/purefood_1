@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://js.stripe.com/v3/"></script>
     <style>
         body {
             display: flex;
@@ -144,6 +145,114 @@
             border-radius: 8px;
             border: 2px dashed #d1d5db;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header h3 {
+            margin: 0 0 0.5rem 0;
+            color: #374151;
+        }
+        .modal-header p {
+            margin: 0 0 1.5rem 0;
+            color: #666;
+            font-size: 0.95rem;
+        }
+        #card-element {
+            padding: 1rem;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        #card-errors {
+            color: #dc2626;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        .btn-cancel {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            border: 2px solid #d1d5db;
+            background-color: #f3f4f6;
+            color: #374151;
+            border-radius: 8px;
+            cursor: pointer;
+            flex: 1;
+        }
+        .btn-cancel:hover {
+            background-color: #e5e7eb;
+        }
+        .btn-submit-pledge {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            flex: 1;
+        }
+        .btn-submit-pledge:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-submit-pledge:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .pledge-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #e5e7eb;
+        }
+        .pledge-input-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        .pledge-input {
+            padding: 0.5rem;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            width: 120px;
+        }
+        .btn-pledge {
+            padding: 0.5rem 1rem;
+            background-color: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn-pledge:hover {
+            background-color: #059669;
+        }
     </style>
 </head>
 <body>
@@ -165,9 +274,28 @@
         <button class="btn btn-secondary" onclick="goBack()" style="margin-top: 2rem;">Back to Home</button>
     </div>
 
+    <!-- Pledge Modal -->
+    <div id="pledge-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Enter Payment Details</h3>
+                <p id="pledge-modal-description">You will only be charged if the funding goal is reached.</p>
+            </div>
+            <div id="card-element"></div>
+            <div id="card-errors"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closePledgeModal()">Cancel</button>
+                <button id="submit-pledge-btn" class="btn-submit-pledge" onclick="confirmPledge()">Confirm Pledge</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let supabaseClient = null;
         let currentUser = null;
+        let stripe = null;
+        let cardElement = null;
+        let currentPledgeData = null;
 
         // Initialize Supabase and load user data
         document.addEventListener('DOMContentLoaded', async function() {
@@ -179,6 +307,7 @@
                 return;
             }
 
+            await initStripe();
             displayUserInfo();
             await loadMyRequests();
             await loadMyPledges();
@@ -204,6 +333,45 @@
             } catch (error) {
                 console.error('Error initializing auth:', error);
             }
+        }
+
+        async function initStripe() {
+            try {
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (config.stripePublishableKey) {
+                    stripe = Stripe(config.stripePublishableKey);
+                    const elements = stripe.elements();
+                    cardElement = elements.create('card');
+                    cardElement.mount('#card-element');
+
+                    // Handle real-time validation errors
+                    cardElement.on('change', function(event) {
+                        const displayError = document.getElementById('card-errors');
+                        if (event.error) {
+                            displayError.textContent = event.error.message;
+                        } else {
+                            displayError.textContent = '';
+                        }
+                    });
+                } else {
+                    console.error('Stripe publishable key not found');
+                }
+            } catch (error) {
+                console.error('Error initializing Stripe:', error);
+            }
+        }
+
+        function openPledgeModal() {
+            const modal = document.getElementById('pledge-modal');
+            modal.classList.add('active');
+        }
+
+        function closePledgeModal() {
+            const modal = document.getElementById('pledge-modal');
+            modal.classList.remove('active');
+            document.getElementById('card-errors').textContent = '';
         }
 
         function displayUserInfo() {
@@ -250,10 +418,27 @@
                     const currentFunding = request.current_funding || 0;
                     const testCost = request.test_cost || 0;
                     const fundingPercentage = testCost > 0 ? Math.min(Math.round((currentFunding / testCost) * 100), 100) : 0;
+                    const remainingFunding = testCost - currentFunding;
 
                     // Status badge
                     const statusClass = `status-${request.status}`;
                     const statusText = request.status.charAt(0).toUpperCase() + request.status.slice(1);
+
+                    // Add pledge section for pending requests
+                    const pledgeSection = request.status === 'pending' && remainingFunding > 0 ? `
+                        <div class="pledge-section">
+                            <p style="margin: 0 0 0.5rem 0; color: #374151; font-weight: 600; font-size: 0.9rem;">
+                                Pledge More to Your Request
+                            </p>
+                            <div class="pledge-input-group">
+                                <input type="number" id="pledge-${request.id}" class="pledge-input" placeholder="0.00" step="0.01" min="0" max="${(remainingFunding / 100).toFixed(2)}">
+                                <button class="btn-pledge" onclick="submitPledge(${request.id})">Add Pledge</button>
+                            </div>
+                            <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.85rem;">
+                                Still needed: $${(remainingFunding / 100).toFixed(2)}
+                            </p>
+                        </div>
+                    ` : '';
 
                     return `
                         <div class="request-card">
@@ -275,6 +460,7 @@
                                     <span>Goal: $${(testCost / 100).toFixed(2)}</span>
                                 </div>
                             </div>
+                            ${pledgeSection}
                         </div>
                     `;
                 }).join('');
@@ -346,6 +532,145 @@
             } catch (error) {
                 console.error('Error loading pledges:', error);
                 pledgesContainer.innerHTML = '<p style="text-align: center; color: #dc2626;">Error loading your pledges. Please try again later.</p>';
+            }
+        }
+
+        async function submitPledge(requestId) {
+            if (!stripe || !cardElement) {
+                alert('Payment system is not ready. Please refresh the page.');
+                return;
+            }
+
+            const pledgeInput = document.getElementById(`pledge-${requestId}`);
+            const pledgeAmount = parseFloat(pledgeInput.value);
+
+            if (!pledgeAmount || pledgeAmount <= 0) {
+                alert('Please enter a valid pledge amount');
+                return;
+            }
+
+            const pledgeAmountCents = Math.round(pledgeAmount * 100);
+
+            // Store pledge data for use in modal
+            currentPledgeData = {
+                requestId,
+                amount: pledgeAmount,
+                amountCents: pledgeAmountCents,
+                input: pledgeInput
+            };
+
+            // Update modal description with amount
+            document.getElementById('pledge-modal-description').textContent =
+                `Pledge amount: $${pledgeAmount.toFixed(2)}. You will only be charged if the funding goal is reached.`;
+
+            // Show the modal
+            openPledgeModal();
+        }
+
+        async function confirmPledge() {
+            if (!currentPledgeData || !stripe || !cardElement) {
+                return;
+            }
+
+            const submitBtn = document.getElementById('submit-pledge-btn');
+            const cardErrors = document.getElementById('card-errors');
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            cardErrors.textContent = '';
+
+            try {
+                // Step 1: Create SetupIntent on the server
+                const setupIntentResponse = await fetch('/api/create-setup-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: currentPledgeData.amountCents,
+                        test_request_id: currentPledgeData.requestId,
+                        user_email: currentUser.email
+                    })
+                });
+
+                if (!setupIntentResponse.ok) {
+                    const errorData = await setupIntentResponse.json();
+                    throw new Error(errorData.error || 'Failed to create payment setup');
+                }
+
+                const { client_secret, setup_intent_id } = await setupIntentResponse.json();
+
+                // Step 2: Confirm card setup with Stripe
+                const { error, setupIntent } = await stripe.confirmCardSetup(client_secret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            email: currentUser.email
+                        }
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                // Step 3: Save pledge to database with payment method
+                const pledge = {
+                    test_request_id: currentPledgeData.requestId,
+                    user_id: currentUser.id,
+                    amount: currentPledgeData.amountCents,
+                    stripe_payment_method_id: setupIntent.payment_method,
+                    stripe_setup_intent_id: setupIntent.id,
+                    status: 'pending'
+                };
+
+                const { error: pledgeError } = await supabaseClient
+                    .from('pledges')
+                    .insert([pledge]);
+
+                if (pledgeError) throw pledgeError;
+
+                // Step 4: Update current funding
+                const { data: request, error: fetchError } = await supabaseClient
+                    .from('test_requests')
+                    .select('current_funding, test_cost')
+                    .eq('id', currentPledgeData.requestId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                const newFunding = (request.current_funding || 0) + currentPledgeData.amountCents;
+
+                const { error: updateError } = await supabaseClient
+                    .from('test_requests')
+                    .update({ current_funding: newFunding })
+                    .eq('id', currentPledgeData.requestId);
+
+                if (updateError) throw updateError;
+
+                // Step 5: Check if funding goal is reached
+                if (newFunding >= request.test_cost) {
+                    // Trigger charging process
+                    fetch('/api/charge-pledges', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ test_request_id: currentPledgeData.requestId })
+                    }).catch(err => console.error('Error triggering charge:', err));
+                }
+
+                // Success!
+                alert(`Thank you for pledging $${currentPledgeData.amount.toFixed(2)} to your request!\n\nYou will only be charged if the funding goal is reached.`);
+                currentPledgeData.input.value = '';
+                closePledgeModal();
+
+                // Reload the requests and pledges to show updated progress
+                await loadMyRequests();
+                await loadMyPledges();
+
+            } catch (error) {
+                console.error('Error submitting pledge:', error);
+                cardErrors.textContent = error.message || 'Error processing payment. Please try again.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Confirm Pledge';
             }
         }
 

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Test Type</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://js.stripe.com/v3/"></script>
     <style>
         body {
             display: flex;
@@ -150,6 +151,107 @@
             border-top: 2px solid #d1d5db;
             margin-top: 1rem;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header h3 {
+            margin: 0 0 0.5rem 0;
+            color: #374151;
+        }
+        .modal-header p {
+            margin: 0 0 1.5rem 0;
+            color: #666;
+            font-size: 0.95rem;
+        }
+        #card-element {
+            padding: 1rem;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        #card-errors {
+            color: #dc2626;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        .btn-cancel {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            border: 2px solid #d1d5db;
+            background-color: #f3f4f6;
+            color: #374151;
+            border-radius: 8px;
+            cursor: pointer;
+            flex: 1;
+        }
+        .btn-cancel:hover {
+            background-color: #e5e7eb;
+        }
+        .btn-submit-pledge {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            flex: 1;
+        }
+        .btn-submit-pledge:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-submit-pledge:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .pledge-input-container {
+            background-color: #f0fdf4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            border: 2px solid #86efac;
+        }
+        .pledge-input-container h3 {
+            margin-top: 0;
+            color: #166534;
+        }
+        .pledge-input-container p {
+            color: #15803d;
+            font-size: 0.9rem;
+            margin: 0.5rem 0 1rem 0;
+        }
+        .pledge-amount-input {
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid #86efac;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 200px;
+        }
     </style>
 </head>
 <body>
@@ -228,6 +330,18 @@
             </div>
         </div>
 
+        <div class="pledge-input-container" id="pledge-container" style="display: none;">
+            <h3>Start with an Initial Pledge (Optional)</h3>
+            <p>Jump-start your test request by making the first pledge! You'll only be charged if the funding goal is reached.</p>
+            <label for="pledge-amount" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #166534;">
+                Your Pledge Amount (USD)
+            </label>
+            <input type="number" id="pledge-amount" class="pledge-amount-input" placeholder="0.00" step="0.01" min="0">
+            <p style="margin-top: 0.5rem; font-size: 0.85rem;">
+                <span id="remaining-funding"></span>
+            </p>
+        </div>
+
         <div class="status" id="status"></div>
 
         <button id="submit-btn" class="btn btn-primary" onclick="submitTestRequest()" disabled>
@@ -237,12 +351,31 @@
         <button class="btn btn-secondary" onclick="goBack()">Back to Product Selection</button>
     </div>
 
+    <!-- Pledge Modal -->
+    <div id="pledge-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Enter Payment Details</h3>
+                <p id="pledge-modal-description">You will only be charged if the funding goal is reached.</p>
+            </div>
+            <div id="card-element"></div>
+            <div id="card-errors"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closePledgeModal()">Cancel</button>
+                <button id="submit-pledge-btn" class="btn-submit-pledge" onclick="confirmPledge()">Confirm Pledge</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let selectedTests = new Set();
         let productData = null;
         let testPricing = null;
         let supabaseClient = null;
         let currentUser = null;
+        let stripe = null;
+        let cardElement = null;
+        let createdTestRequestId = null;
 
         // Load product data from sessionStorage
         document.addEventListener('DOMContentLoaded', async function() {
@@ -272,6 +405,15 @@
 
             // Fetch test pricing
             await loadTestPricing();
+
+            // Initialize Stripe
+            await initStripe();
+
+            // Add event listener for pledge amount input
+            const pledgeInput = document.getElementById('pledge-amount');
+            if (pledgeInput) {
+                pledgeInput.addEventListener('input', updateRemainingFunding);
+            }
         });
 
         async function initAuth() {
@@ -294,6 +436,45 @@
             } catch (error) {
                 console.error('Error initializing auth:', error);
             }
+        }
+
+        async function initStripe() {
+            try {
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (config.stripePublishableKey) {
+                    stripe = Stripe(config.stripePublishableKey);
+                    const elements = stripe.elements();
+                    cardElement = elements.create('card');
+                    cardElement.mount('#card-element');
+
+                    // Handle real-time validation errors
+                    cardElement.on('change', function(event) {
+                        const displayError = document.getElementById('card-errors');
+                        if (event.error) {
+                            displayError.textContent = event.error.message;
+                        } else {
+                            displayError.textContent = '';
+                        }
+                    });
+                } else {
+                    console.error('Stripe publishable key not found');
+                }
+            } catch (error) {
+                console.error('Error initializing Stripe:', error);
+            }
+        }
+
+        function openPledgeModal() {
+            const modal = document.getElementById('pledge-modal');
+            modal.classList.add('active');
+        }
+
+        function closePledgeModal() {
+            const modal = document.getElementById('pledge-modal');
+            modal.classList.remove('active');
+            document.getElementById('card-errors').textContent = '';
         }
 
         async function loadTestPricing() {
@@ -341,16 +522,19 @@
 
         function updatePricingSummary() {
             const pricingSummary = document.getElementById('pricing-summary');
+            const pledgeContainer = document.getElementById('pledge-container');
             const priceInput = document.getElementById('product-price');
             const productPrice = parseFloat(priceInput.value) || 0;
             const productPriceCents = Math.round(productPrice * 100);
 
             if (selectedTests.size === 0) {
                 pricingSummary.style.display = 'none';
+                pledgeContainer.style.display = 'none';
                 return;
             }
 
             pricingSummary.style.display = 'block';
+            pledgeContainer.style.display = 'block';
 
             // Display product price
             document.getElementById('price-product').textContent = formatCurrency(productPriceCents);
@@ -388,6 +572,54 @@
             const overheadCents = 10000; // $100.00
             const totalCents = productPriceCents + testPricesTotal + overheadCents;
             document.getElementById('price-total').textContent = formatCurrency(totalCents);
+
+            // Update remaining funding text
+            updateRemainingFunding();
+        }
+
+        function updateRemainingFunding() {
+            const pledgeInput = document.getElementById('pledge-amount');
+            const remainingFundingSpan = document.getElementById('remaining-funding');
+            const priceInput = document.getElementById('product-price');
+            const productPrice = parseFloat(priceInput.value) || 0;
+            const productPriceCents = Math.round(productPrice * 100);
+
+            // Calculate total test cost
+            let testPricesTotal = 0;
+            if (testPricing) {
+                const testNameMap = {
+                    'heavy_metals': 'heavy_metals',
+                    'pesticides': 'pesticide',
+                    'pfas': 'PFAS',
+                    'microplastics': 'microplastic'
+                };
+
+                selectedTests.forEach(testType => {
+                    const field = testNameMap[testType];
+                    if (field && testPricing[field]) {
+                        testPricesTotal += testPricing[field];
+                    }
+                });
+            }
+
+            const overheadCents = 10000; // $100.00
+            const totalTestCost = productPriceCents + testPricesTotal + overheadCents;
+
+            const pledgeAmount = parseFloat(pledgeInput.value) || 0;
+            const pledgeAmountCents = Math.round(pledgeAmount * 100);
+
+            if (pledgeAmountCents > 0) {
+                const remaining = totalTestCost - pledgeAmountCents;
+                if (remaining > 0) {
+                    remainingFundingSpan.textContent = `Still needed: ${formatCurrency(remaining)}`;
+                } else if (remaining === 0) {
+                    remainingFundingSpan.textContent = 'Fully funded! 🎉';
+                } else {
+                    remainingFundingSpan.textContent = `Over-funded by ${formatCurrency(Math.abs(remaining))}`;
+                }
+            } else {
+                remainingFundingSpan.textContent = `Full funding goal: ${formatCurrency(totalTestCost)}`;
+            }
         }
 
         // Update pricing when product price changes
@@ -457,7 +689,7 @@
                     expiration_date: expirationDate.toISOString()
                 };
 
-                // Insert into Supabase
+                // Step 1: Insert test request into Supabase
                 const { data, error } = await supabaseClient
                     .from('test_requests')
                     .insert([testRequest])
@@ -465,22 +697,159 @@
 
                 if (error) throw error;
 
-                status.textContent = 'Test request submitted successfully!';
+                createdTestRequestId = data[0].id;
 
-                // Clear session storage
-                sessionStorage.removeItem('pendingTestRequest');
+                // Step 2: Check if user wants to make an initial pledge
+                const pledgeInput = document.getElementById('pledge-amount');
+                const pledgeAmount = parseFloat(pledgeInput.value) || 0;
+                const pledgeAmountCents = Math.round(pledgeAmount * 100);
 
-                // Show success message
-                setTimeout(() => {
-                    alert('Your test request has been submitted!\n\nWe will notify you when testing begins.');
-                    window.location.href = '/';
-                }, 1000);
+                if (pledgeAmountCents > 0) {
+                    // User wants to pledge, open the payment modal
+                    status.textContent = 'Please enter payment details...';
+                    openPledgeModal();
+                } else {
+                    // No pledge, just finish
+                    finishSubmission();
+                }
 
             } catch (error) {
                 console.error('Error submitting test request:', error);
                 status.textContent = 'Error submitting request. Please try again.';
                 submitBtn.disabled = false;
             }
+        }
+
+        async function confirmPledge() {
+            const submitPledgeBtn = document.getElementById('submit-pledge-btn');
+            const cardErrors = document.getElementById('card-errors');
+            const status = document.getElementById('status');
+
+            submitPledgeBtn.disabled = true;
+            cardErrors.textContent = '';
+
+            try {
+                const pledgeInput = document.getElementById('pledge-amount');
+                const pledgeAmount = parseFloat(pledgeInput.value) || 0;
+                const pledgeAmountCents = Math.round(pledgeAmount * 100);
+
+                if (pledgeAmountCents <= 0) {
+                    throw new Error('Invalid pledge amount');
+                }
+
+                // Step 1: Create SetupIntent on the server
+                status.textContent = 'Processing payment setup...';
+                const setupIntentResponse = await fetch('/api/create-setup-intent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: pledgeAmountCents,
+                        test_request_id: createdTestRequestId,
+                        user_email: currentUser.email
+                    })
+                });
+
+                if (!setupIntentResponse.ok) {
+                    const errorData = await setupIntentResponse.json();
+                    throw new Error(errorData.error || 'Failed to create payment setup');
+                }
+
+                const { client_secret, setup_intent_id } = await setupIntentResponse.json();
+
+                // Step 2: Confirm the card setup with Stripe
+                const { error, setupIntent } = await stripe.confirmCardSetup(client_secret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            email: currentUser.email
+                        }
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                // Step 3: Save the pledge to the database
+                status.textContent = 'Saving pledge...';
+                const pledge = {
+                    test_request_id: createdTestRequestId,
+                    user_id: currentUser.id,
+                    amount: pledgeAmountCents,
+                    stripe_payment_method_id: setupIntent.payment_method,
+                    stripe_setup_intent_id: setupIntent.id,
+                    status: 'pending'
+                };
+
+                const { error: pledgeError } = await supabaseClient
+                    .from('pledges')
+                    .insert([pledge]);
+
+                if (pledgeError) throw pledgeError;
+
+                // Step 4: Update current_funding in test_requests
+                const { error: updateError } = await supabaseClient
+                    .from('test_requests')
+                    .update({ current_funding: pledgeAmountCents })
+                    .eq('id', createdTestRequestId);
+
+                if (updateError) throw updateError;
+
+                // Step 5: Check if funding goal is reached
+                const { data: testRequestData } = await supabaseClient
+                    .from('test_requests')
+                    .select('current_funding, test_cost')
+                    .eq('id', createdTestRequestId)
+                    .single();
+
+                if (testRequestData && testRequestData.current_funding >= testRequestData.test_cost) {
+                    // Funding goal reached! Trigger charging
+                    status.textContent = 'Funding goal reached! Processing charges...';
+                    await fetch('/api/charge-pledges', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            test_request_id: createdTestRequestId
+                        })
+                    });
+                }
+
+                closePledgeModal();
+                finishSubmission(true);
+
+            } catch (error) {
+                console.error('Error submitting pledge:', error);
+                cardErrors.textContent = error.message || 'Payment failed. Please try again.';
+                submitPledgeBtn.disabled = false;
+                status.textContent = '';
+            }
+        }
+
+        function finishSubmission(hasPledge = false) {
+            const status = document.getElementById('status');
+
+            if (hasPledge) {
+                status.textContent = 'Test request and pledge submitted successfully!';
+            } else {
+                status.textContent = 'Test request submitted successfully!';
+            }
+
+            // Clear session storage
+            sessionStorage.removeItem('pendingTestRequest');
+
+            // Show success message
+            setTimeout(() => {
+                if (hasPledge) {
+                    alert('Your test request and pledge have been submitted!\n\nYou will only be charged if the funding goal is reached.\n\nWe will notify you when testing begins.');
+                } else {
+                    alert('Your test request has been submitted!\n\nWe will notify you when testing begins.');
+                }
+                window.location.href = '/';
+            }, 1000);
         }
 
         function goBack() {
