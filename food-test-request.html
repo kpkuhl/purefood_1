@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Test Request - Scan Barcode</title>
-    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         body {
             display: flex;
@@ -31,18 +31,11 @@
             max-width: 600px;
             width: 100%;
         }
-        #video-container {
-            position: relative;
+        #reader {
             width: 100%;
             margin-bottom: 1rem;
-        }
-        #video {
-            width: 100%;
             border-radius: 8px;
-            display: none;
-        }
-        #video.active {
-            display: block;
+            overflow: hidden;
         }
         .btn {
             padding: 1rem 2rem;
@@ -119,11 +112,7 @@
     <h1>Scan Product Barcode</h1>
 
     <div class="container">
-        <button id="start-scan" class="btn btn-primary">Start Barcode Scanner</button>
-
-        <div id="video-container">
-            <video id="video"></video>
-        </div>
+        <div id="reader"></div>
 
         <div class="status" id="status"></div>
 
@@ -151,82 +140,43 @@
     </div>
 
     <script>
-        let codeReader = null;
-        let selectedDeviceId = null;
+        let html5QrcodeScanner = null;
 
-        document.getElementById('start-scan').addEventListener('click', startScanner);
+        function onScanSuccess(decodedText, decodedResult) {
+            console.log(`Barcode detected: ${decodedText}`);
 
-        async function startScanner() {
-            const video = document.getElementById('video');
-            const status = document.getElementById('status');
-            const startButton = document.getElementById('start-scan');
+            // Stop scanning
+            html5QrcodeScanner.clear();
 
-            try {
-                // Use MultiFormatReader to support multiple barcode formats
-                const hints = new Map();
-                const formats = [
-                    ZXing.BarcodeFormat.EAN_13,
-                    ZXing.BarcodeFormat.EAN_8,
-                    ZXing.BarcodeFormat.UPC_A,
-                    ZXing.BarcodeFormat.UPC_E,
-                    ZXing.BarcodeFormat.CODE_128,
-                    ZXing.BarcodeFormat.CODE_39,
-                    ZXing.BarcodeFormat.QR_CODE
-                ];
-                hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-                codeReader = new ZXing.BrowserMultiFormatReader(hints);
-
-                status.textContent = 'Requesting camera access...';
-                startButton.style.display = 'none';
-
-                const devices = await codeReader.listVideoInputDevices();
-
-                if (devices.length === 0) {
-                    status.textContent = 'No camera found on this device.';
-                    startButton.style.display = 'block';
-                    return;
-                }
-
-                // Prefer back camera on mobile devices
-                selectedDeviceId = devices[0].deviceId;
-                for (const device of devices) {
-                    if (device.label.toLowerCase().includes('back') ||
-                        device.label.toLowerCase().includes('rear')) {
-                        selectedDeviceId = device.deviceId;
-                        break;
-                    }
-                }
-
-                video.classList.add('active');
-                status.textContent = 'Point camera at barcode... Hold steady and ensure good lighting.';
-
-                codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, err) => {
-                    if (result) {
-                        console.log('Barcode detected:', result.text);
-                        handleScanResult(result.text);
-                        stopScanner();
-                    }
-                    if (err && !(err instanceof ZXing.NotFoundException)) {
-                        console.error('Scan error:', err);
-                    }
-                });
-
-            } catch (error) {
-                console.error('Scanner initialization error:', error);
-                status.textContent = 'Error accessing camera. Please ensure camera permissions are granted.';
-                startButton.style.display = 'block';
-            }
+            // Handle the scanned barcode
+            handleScanResult(decodedText);
         }
 
-        function stopScanner() {
-            if (codeReader) {
-                codeReader.reset();
-            }
-            document.getElementById('video').classList.remove('active');
-            document.getElementById('status').textContent = '';
+        function onScanError(errorMessage) {
+            // Ignore errors - these are just "not found" errors while scanning
         }
+
+        // Auto-start scanner on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ],
+                rememberLastUsedCamera: true,
+                aspectRatio: 1.0
+            };
+
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
+            html5QrcodeScanner.render(onScanSuccess, onScanError);
+        });
 
         async function handleScanResult(barcode) {
             document.getElementById('barcode-value').textContent = barcode;
@@ -273,7 +223,24 @@
 
         function rescan() {
             document.getElementById('result').classList.remove('active');
-            document.getElementById('start-scan').style.display = 'block';
+            // Restart the scanner
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ],
+                rememberLastUsedCamera: true,
+                aspectRatio: 1.0
+            };
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
+            html5QrcodeScanner.render(onScanSuccess, onScanError);
         }
 
         function goBack() {
