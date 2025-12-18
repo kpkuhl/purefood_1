@@ -190,7 +190,7 @@
     </div>
 
     <script>
-        let supabase = null;
+        let supabaseClient = null;
         let currentUser = null;
 
         // Initialize Supabase and check auth state
@@ -204,10 +204,10 @@
                     return;
                 }
 
-                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+                supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
 
                 // Get current session
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
 
                 if (session) {
                     currentUser = session.user;
@@ -217,7 +217,7 @@
                 }
 
                 // Listen for auth changes
-                supabase.auth.onAuthStateChange((event, session) => {
+                supabaseClient.auth.onAuthStateChange((event, session) => {
                     if (session) {
                         currentUser = session.user;
                         updateAuthButton(true);
@@ -250,7 +250,7 @@
         async function handleAuth() {
             if (currentUser) {
                 // Sign out
-                await supabase.auth.signOut();
+                await supabaseClient.auth.signOut();
                 currentUser = null;
                 updateAuthButton(false);
                 alert('You have been signed out');
@@ -287,7 +287,7 @@
         async function loadTestRequests() {
             const requestsList = document.getElementById('requests-list');
 
-            if (!supabase) {
+            if (!supabaseClient) {
                 requestsList.innerHTML = '<p style="text-align: center; color: #dc2626;">Unable to load test requests. Please refresh the page.</p>';
                 return;
             }
@@ -295,7 +295,7 @@
             try {
 
                 // Fetch all pending test requests
-                const { data: requests, error } = await supabase
+                const { data: requests, error } = await supabaseClient
                     .from('test_requests')
                     .select('*')
                     .eq('status', 'pending')
@@ -389,14 +389,14 @@
                     amount: pledgeAmountCents
                 };
 
-                const { error: pledgeError } = await supabase
+                const { error: pledgeError } = await supabaseClient
                     .from('pledges')
                     .insert([pledge]);
 
                 if (pledgeError) throw pledgeError;
 
                 // Get current test request
-                const { data: request, error: fetchError } = await supabase
+                const { data: request, error: fetchError } = await supabaseClient
                     .from('test_requests')
                     .select('current_funding')
                     .eq('id', requestId)
@@ -407,7 +407,7 @@
                 // Update current funding
                 const newFunding = (request.current_funding || 0) + pledgeAmountCents;
 
-                const { error: updateError } = await supabase
+                const { error: updateError } = await supabaseClient
                     .from('test_requests')
                     .update({ current_funding: newFunding })
                     .eq('id', requestId);
