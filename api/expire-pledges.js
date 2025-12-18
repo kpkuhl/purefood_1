@@ -10,11 +10,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Note: This is a placeholder. You'll need to:
-    // 1. Set up Supabase server client with service role key
-    // 2. Query for expired test requests
-    // 3. Update their status and delete/cancel pledges
-
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
@@ -22,49 +17,77 @@ export default async function handler(req, res) {
       throw new Error('Missing Supabase configuration');
     }
 
-    // Example logic (you'll need to import Supabase client):
-    // const { createClient } = require('@supabase/supabase-js');
-    // const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Import Supabase dynamically
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Find expired test requests
-    // const { data: expiredRequests } = await supabase
-    //   .from('test_requests')
-    //   .select('*')
-    //   .lt('expiration_date', new Date().toISOString())
-    //   .eq('status', 'pending')
-    //   .lt('current_funding', supabase.raw('test_cost'));
+    // Find expired test requests that haven't reached funding goal
+    const { data: expiredRequests, error: queryError } = await supabase
+      .from('test_requests')
+      .select('id, current_funding, test_cost, product_name')
+      .lt('expiration_date', new Date().toISOString())
+      .eq('status', 'pending');
 
-    // For each expired request:
-    // - Update test_request status to 'expired'
-    // - Update all associated pledges status to 'cancelled'
+    if (queryError) throw queryError;
 
-    // const results = {
-    //   expired_count: 0,
-    //   pledges_cancelled: 0
-    // };
+    const results = {
+      expired_count: 0,
+      pledges_cancelled: 0,
+      expired_requests: []
+    };
 
-    // for (const request of expiredRequests) {
-    //   // Update test request
-    //   await supabase
-    //     .from('test_requests')
-    //     .update({ status: 'expired' })
-    //     .eq('id', request.id);
+    if (!expiredRequests || expiredRequests.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No expired requests found',
+        results
+      });
+    }
 
-    //   // Cancel pledges
-    //   const { data: cancelledPledges } = await supabase
-    //     .from('pledges')
-    //     .update({ status: 'cancelled' })
-    //     .eq('test_request_id', request.id)
-    //     .eq('status', 'pending');
+    // Process each expired request
+    for (const request of expiredRequests) {
+      // Only expire if funding goal was not reached
+      if ((request.current_funding || 0) < (request.test_cost || 0)) {
+        // Update test request status to 'expired'
+        const { error: updateError } = await supabase
+          .from('test_requests')
+          .update({ status: 'expired' })
+          .eq('id', request.id);
 
-    //   results.expired_count++;
-    //   results.pledges_cancelled += cancelledPledges?.length || 0;
-    // }
+        if (updateError) {
+          console.error(`Error updating test request ${request.id}:`, updateError);
+          continue;
+        }
+
+        // Cancel all pending pledges for this request
+        const { data: cancelledPledges, error: cancelError } = await supabase
+          .from('pledges')
+          .update({ status: 'cancelled' })
+          .eq('test_request_id', request.id)
+          .eq('status', 'pending')
+          .select('id');
+
+        if (cancelError) {
+          console.error(`Error cancelling pledges for request ${request.id}:`, cancelError);
+          continue;
+        }
+
+        results.expired_count++;
+        results.pledges_cancelled += cancelledPledges?.length || 0;
+        results.expired_requests.push({
+          id: request.id,
+          product_name: request.product_name,
+          pledges_cancelled: cancelledPledges?.length || 0
+        });
+
+        console.log(`Expired request ${request.id} (${request.product_name}), cancelled ${cancelledPledges?.length || 0} pledges`);
+      }
+    }
 
     res.status(200).json({
       success: true,
       message: 'Expiration check completed',
-      // results
+      results
     });
   } catch (error) {
     console.error('Error in expire-pledges cron:', error);
