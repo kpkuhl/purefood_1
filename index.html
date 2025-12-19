@@ -16,17 +16,17 @@
             margin: 0;
             padding: 20px;
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            background-color: #ffffff;
         }
         h1 {
             font-size: 2.5rem;
-            color: #333;
+            color: #000000;
             margin-bottom: 1rem;
             text-align: center;
         }
         h2 {
             font-size: 1.25rem;
-            color: #666;
+            color: #000000;
             margin-bottom: 2rem;
             text-align: center;
             font-weight: normal;
@@ -56,21 +56,21 @@
             display: inline-block;
         }
         .btn-primary {
-            background-color: #2563eb;
-            color: white;
+            background-color: #000000;
+            color: #ffffff;
         }
         .btn-primary:hover {
-            background-color: #1d4ed8;
+            background-color: #000000;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         .btn-secondary {
-            background-color: #f3f4f6;
-            color: #374151;
-            border: 2px solid #d1d5db;
+            background-color: #ffffff;
+            color: #000000;
+            border: 2px solid #000000;
         }
         .btn-secondary:hover {
-            background-color: #e5e7eb;
+            background-color: #ffffff;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
@@ -95,12 +95,12 @@
         }
         .request-header h3 {
             margin: 0 0 0.5rem 0;
-            color: #333;
+            color: #000000;
             font-size: 1.2rem;
         }
         .request-header p {
             margin: 0.25rem 0;
-            color: #666;
+            color: #000000;
             font-size: 0.9rem;
         }
         .progress-container {
@@ -109,19 +109,20 @@
         .progress-bar {
             width: 100%;
             height: 24px;
-            background-color: #e5e7eb;
+            background-color: #ffffff;
+            border: 2px solid #000000;
             border-radius: 12px;
             overflow: hidden;
             margin-bottom: 0.5rem;
         }
         .progress-fill {
             height: 100%;
-            background-color: #10b981;
+            background-color: #000000;
             transition: width 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #ffffff;
             font-weight: 600;
             font-size: 0.85rem;
         }
@@ -129,7 +130,7 @@
             display: flex;
             justify-content: space-between;
             font-size: 0.9rem;
-            color: #666;
+            color: #000000;
         }
         .support-section {
             display: flex;
@@ -141,13 +142,13 @@
             flex: 1;
             padding: 0.75rem;
             font-size: 1rem;
-            border: 2px solid #d1d5db;
+            border: 2px solid #000000;
             border-radius: 8px;
         }
         .btn-support {
             padding: 0.75rem 1.5rem;
-            background-color: #10b981;
-            color: white;
+            background-color: #000000;
+            color: #ffffff;
             border: none;
             border-radius: 8px;
             font-weight: 600;
@@ -155,11 +156,11 @@
             transition: all 0.3s ease;
         }
         .btn-support:hover {
-            background-color: #059669;
+            background-color: #000000;
         }
         .loading {
             text-align: center;
-            color: #666;
+            color: #000000;
             padding: 2rem;
         }
         /* Modal styles for Stripe card input */
@@ -191,22 +192,22 @@
         }
         .modal-header h3 {
             margin: 0 0 0.5rem 0;
-            color: #333;
+            color: #000000;
             font-size: 1.5rem;
         }
         .modal-header p {
             margin: 0;
-            color: #666;
+            color: #000000;
             font-size: 0.9rem;
         }
         #card-element {
             padding: 1rem;
-            border: 2px solid #d1d5db;
+            border: 2px solid #000000;
             border-radius: 8px;
             margin-bottom: 1rem;
         }
         #card-errors {
-            color: #dc2626;
+            color: #000000;
             font-size: 0.9rem;
             margin-bottom: 1rem;
             min-height: 20px;
@@ -218,30 +219,30 @@
         }
         .btn-cancel {
             padding: 0.75rem 1.5rem;
-            background-color: #e5e7eb;
-            color: #374151;
-            border: none;
+            background-color: #ffffff;
+            color: #000000;
+            border: 2px solid #000000;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
         }
         .btn-cancel:hover {
-            background-color: #d1d5db;
+            background-color: #ffffff;
         }
         .btn-submit-pledge {
             padding: 0.75rem 1.5rem;
-            background-color: #2563eb;
-            color: white;
+            background-color: #000000;
+            color: #ffffff;
             border: none;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
         }
         .btn-submit-pledge:hover {
-            background-color: #1d4ed8;
+            background-color: #000000;
         }
         .btn-submit-pledge:disabled {
-            background-color: #9ca3af;
+            background-color: #000000;
             cursor: not-allowed;
         }
     </style>
@@ -418,7 +419,7 @@
             const requestsList = document.getElementById('requests-list');
 
             if (!supabaseClient) {
-                requestsList.innerHTML = '<p style="text-align: center; color: #dc2626;">Unable to load test requests. Please refresh the page.</p>';
+                requestsList.innerHTML = '<p style="text-align: center; color: #000000;">Unable to load test requests. Please refresh the page.</p>';
                 return;
             }
 
@@ -434,7 +435,7 @@
                 if (error) throw error;
 
                 if (!requests || requests.length === 0) {
-                    requestsList.innerHTML = '<p style="text-align: center; color: #666;">No test requests yet. Be the first to request a test!</p>';
+                    requestsList.innerHTML = '<p style="text-align: center; color: #000000;">No test requests yet. Be the first to request a test!</p>';
                     return;
                 }
 
@@ -489,7 +490,7 @@
 
             } catch (error) {
                 console.error('Error loading test requests:', error);
-                requestsList.innerHTML = '<p style="text-align: center; color: #dc2626;">Error loading test requests. Please try again later.</p>';
+                requestsList.innerHTML = '<p style="text-align: center; color: #000000;">Error loading test requests. Please try again later.</p>';
             }
         }
 

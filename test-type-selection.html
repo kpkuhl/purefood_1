@@ -16,35 +16,36 @@
             margin: 0;
             padding: 20px;
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            background-color: #ffffff;
         }
         h1 {
             font-size: 2rem;
-            color: #333;
+            color: #000000;
             margin-bottom: 1rem;
             text-align: center;
         }
         .container {
-            background: white;
+            background: #ffffff;
             padding: 2rem;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 2px solid #000000;
             max-width: 600px;
             width: 100%;
         }
         .product-summary {
-            background-color: #f9fafb;
+            background-color: #ffffff;
             padding: 1rem;
             border-radius: 8px;
+            border: 2px solid #000000;
             margin-bottom: 2rem;
         }
         .product-summary h3 {
             margin-top: 0;
-            color: #374151;
+            color: #000000;
         }
         .product-summary p {
             margin: 0.5rem 0;
-            color: #666;
+            color: #000000;
         }
         .test-type-grid {
             display: grid;
@@ -53,31 +54,36 @@
             margin-bottom: 2rem;
         }
         .test-card {
-            border: 2px solid #d1d5db;
+            border: 2px solid #000000;
             border-radius: 8px;
             padding: 1.5rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: white;
+            background: #ffffff;
         }
         .test-card:hover {
-            border-color: #2563eb;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+            border-color: #000000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             transform: translateY(-2px);
         }
         .test-card.selected {
-            border-color: #2563eb;
-            background-color: #eff6ff;
+            border-color: #000000;
+            background-color: #000000;
+            color: #ffffff;
         }
         .test-card h4 {
             margin: 0 0 0.5rem 0;
-            color: #374151;
+            color: #000000;
             font-size: 1.1rem;
         }
         .test-card p {
             margin: 0;
-            color: #666;
+            color: #000000;
             font-size: 0.9rem;
+        }
+        .test-card.selected h4,
+        .test-card.selected p {
+            color: #ffffff;
         }
         .btn {
             padding: 1rem 2rem;
@@ -93,27 +99,27 @@
             margin-bottom: 1rem;
         }
         .btn-primary {
-            background-color: #2563eb;
-            color: white;
+            background-color: #000000;
+            color: #ffffff;
         }
         .btn-primary:hover {
-            background-color: #1d4ed8;
+            background-color: #000000;
         }
         .btn-primary:disabled {
-            background-color: #9ca3af;
+            background-color: #000000;
             cursor: not-allowed;
         }
         .btn-secondary {
-            background-color: #f3f4f6;
-            color: #374151;
-            border: 2px solid #d1d5db;
+            background-color: #ffffff;
+            color: #000000;
+            border: 2px solid #000000;
         }
         .btn-secondary:hover {
-            background-color: #e5e7eb;
+            background-color: #ffffff;
         }
         .status {
             text-align: center;
-            color: #666;
+            color: #000000;
             margin: 1rem 0;
         }
         .checkbox-container {
@@ -127,28 +133,28 @@
             margin-right: 0.5rem;
         }
         .pricing-summary {
-            background-color: #f9fafb;
+            background-color: #ffffff;
             padding: 1.5rem;
             border-radius: 8px;
             margin: 2rem 0;
-            border: 2px solid #e5e7eb;
+            border: 2px solid #000000;
         }
         .pricing-summary h3 {
             margin-top: 0;
-            color: #374151;
+            color: #000000;
         }
         .pricing-line {
             display: flex;
             justify-content: space-between;
             margin: 0.75rem 0;
-            color: #666;
+            color: #000000;
         }
         .pricing-line.total {
             font-size: 1.2rem;
             font-weight: bold;
-            color: #374151;
+            color: #000000;
             padding-top: 0.75rem;
-            border-top: 2px solid #d1d5db;
+            border-top: 2px solid #000000;
             margin-top: 1rem;
         }
         .modal {
@@ -167,30 +173,30 @@
             align-items: center;
         }
         .modal-content {
-            background: white;
+            background: #ffffff;
             padding: 2rem;
             border-radius: 8px;
             max-width: 500px;
             width: 90%;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 2px solid #000000;
         }
         .modal-header h3 {
             margin: 0 0 0.5rem 0;
-            color: #374151;
+            color: #000000;
         }
         .modal-header p {
             margin: 0 0 1.5rem 0;
-            color: #666;
+            color: #000000;
             font-size: 0.95rem;
         }
         #card-element {
             padding: 1rem;
-            border: 2px solid #d1d5db;
+            border: 2px solid #000000;
             border-radius: 8px;
             margin-bottom: 1rem;
         }
         #card-errors {
-            color: #dc2626;
+            color: #000000;
             margin-bottom: 1rem;
             font-size: 0.9rem;
         }
@@ -201,53 +207,53 @@
         .btn-cancel {
             padding: 0.75rem 1.5rem;
             font-size: 1rem;
-            border: 2px solid #d1d5db;
-            background-color: #f3f4f6;
-            color: #374151;
+            border: 2px solid #000000;
+            background-color: #ffffff;
+            color: #000000;
             border-radius: 8px;
             cursor: pointer;
             flex: 1;
         }
         .btn-cancel:hover {
-            background-color: #e5e7eb;
+            background-color: #ffffff;
         }
         .btn-submit-pledge {
             padding: 0.75rem 1.5rem;
             font-size: 1rem;
-            background-color: #2563eb;
-            color: white;
+            background-color: #000000;
+            color: #ffffff;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             flex: 1;
         }
         .btn-submit-pledge:hover {
-            background-color: #1d4ed8;
+            background-color: #000000;
         }
         .btn-submit-pledge:disabled {
-            background-color: #9ca3af;
+            background-color: #000000;
             cursor: not-allowed;
         }
         .pledge-input-container {
-            background-color: #f0fdf4;
+            background-color: #ffffff;
             padding: 1.5rem;
             border-radius: 8px;
             margin: 2rem 0;
-            border: 2px solid #86efac;
+            border: 2px solid #000000;
         }
         .pledge-input-container h3 {
             margin-top: 0;
-            color: #166534;
+            color: #000000;
         }
         .pledge-input-container p {
-            color: #15803d;
+            color: #000000;
             font-size: 0.9rem;
             margin: 0.5rem 0 1rem 0;
         }
         .pledge-amount-input {
             padding: 0.75rem;
             font-size: 1rem;
-            border: 2px solid #86efac;
+            border: 2px solid #000000;
             border-radius: 8px;
             width: 100%;
             max-width: 200px;
