@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Test Request Details</title>
+
+    <!-- Open Graph meta tags for social media sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" id="og-title" content="Test Request Details">
+    <meta property="og:description" id="og-description" content="Support this food safety testing request">
+    <meta property="og:url" id="og-url" content="">
+
+    <!-- Twitter Card meta tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" id="twitter-title" content="Test Request Details">
+    <meta name="twitter:description" id="twitter-description" content="Support this food safety testing request">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            border: 2px solid #000000;
+            margin-bottom: 2rem;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #000000;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        h2 {
+            font-size: 1.5rem;
+            color: #000000;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 0.5rem;
+        }
+        .product-info {
+            margin-bottom: 2rem;
+        }
+        .product-info p {
+            margin: 0.5rem 0;
+            color: #000000;
+            font-size: 1rem;
+        }
+        .product-info strong {
+            font-weight: 600;
+        }
+        .test-types {
+            margin: 1.5rem 0;
+        }
+        .test-type-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border: 2px solid #000000;
+            border-radius: 4px;
+            background-color: #ffffff;
+            color: #000000;
+            font-weight: 600;
+        }
+        .progress-section {
+            margin: 2rem 0;
+        }
+        .progress-bar {
+            height: 30px;
+            background-color: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #000000;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: width 0.3s ease;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            color: #000000;
+            font-size: 0.9rem;
+        }
+        .pledge-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border: 2px solid #000000;
+            border-radius: 8px;
+        }
+        .pledge-input-container {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+        .pledge-input-container input {
+            flex: 1;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid #000000;
+            border-radius: 8px;
+        }
+        .share-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border: 2px solid #000000;
+            border-radius: 8px;
+        }
+        .share-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        .share-btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #ffffff;
+            color: #000000;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .share-btn:hover {
+            background-color: #000000;
+            color: #ffffff;
+        }
+        .comments-section {
+            margin: 2rem 0;
+        }
+        .comment-form {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 2px solid #000000;
+            border-radius: 8px;
+        }
+        .comment-form textarea {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            min-height: 100px;
+            resize: vertical;
+            font-family: Arial, sans-serif;
+            box-sizing: border-box;
+        }
+        .comment {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            color: #000000;
+            font-size: 0.9rem;
+        }
+        .comment-author {
+            font-weight: 600;
+        }
+        .comment-date {
+            color: #000000;
+        }
+        .comment-text {
+            color: #000000;
+            line-height: 1.5;
+        }
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #000000;
+            color: #ffffff;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .btn-primary:hover {
+            background-color: #000000;
+        }
+        .btn-primary:disabled {
+            background-color: #000000;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background-color: #ffffff;
+            color: #000000;
+            border: 2px solid #000000;
+        }
+        .btn-secondary:hover {
+            background-color: #000000;
+            color: #ffffff;
+        }
+        .status {
+            text-align: center;
+            color: #000000;
+            margin: 1rem 0;
+        }
+        .status.error {
+            color: #000000;
+        }
+        .status.success {
+            color: #000000;
+        }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #000000;
+        }
+        .error-message {
+            text-align: center;
+            padding: 2rem;
+            color: #000000;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+        @media (max-width: 768px) {
+            .share-buttons {
+                flex-direction: column;
+            }
+            .share-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">Loading test request details...</div>
+    <div id="error-container" style="display: none;"></div>
+    <div id="main-content" style="display: none;">
+        <h1 id="main-title">Test Request Details</h1>
+
+        <div class="container">
+            <div class="product-info">
+                <p><strong>Brand:</strong> <span id="brand-name"></span></p>
+                <p><strong>Product:</strong> <span id="product-name"></span></p>
+                <p><strong>Barcode:</strong> <span id="barcode"></span></p>
+            </div>
+
+            <h2>Tests Requested</h2>
+            <div class="test-types" id="test-types"></div>
+
+            <div class="progress-section">
+                <h2>Funding Progress</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%">
+                        <span id="progress-text">$0</span>
+                    </div>
+                </div>
+                <div class="progress-info">
+                    <span id="pledged-amount">$0 pledged</span>
+                    <span id="goal-amount">of $0 goal</span>
+                </div>
+            </div>
+
+            <div class="pledge-section">
+                <h2>Support This Test Request</h2>
+                <p>Pledge to support testing for this product:</p>
+                <div class="pledge-input-container">
+                    <input type="number" id="pledge-amount" placeholder="Enter amount ($)" min="1" step="1">
+                    <button class="btn btn-primary" onclick="makePledge()">Pledge</button>
+                </div>
+                <div class="status" id="pledge-status"></div>
+            </div>
+        </div>
+
+        <div class="container share-section">
+            <h2>Share This Request</h2>
+            <p>Help spread the word about this food safety testing request:</p>
+            <div class="share-buttons">
+                <a href="#" class="share-btn" id="share-twitter" target="_blank">Share on Twitter</a>
+                <a href="#" class="share-btn" id="share-facebook" target="_blank">Share on Facebook</a>
+                <a href="#" class="share-btn" id="share-linkedin" target="_blank">Share on LinkedIn</a>
+                <button class="share-btn" onclick="copyLink()">Copy Link</button>
+            </div>
+        </div>
+
+        <div class="container comments-section">
+            <h2>Comments</h2>
+
+            <div class="comment-form">
+                <h3 style="margin-top: 0; color: #000000; font-size: 1.1rem;">Add a Comment</h3>
+                <textarea id="comment-text" placeholder="Share your thoughts..."></textarea>
+                <button class="btn btn-primary" onclick="addComment()">Post Comment</button>
+                <div class="status" id="comment-status"></div>
+            </div>
+
+            <div id="comments-list">
+                <!-- Comments will be loaded here -->
+            </div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="goBack()">Back to Home</button>
+    </div>
+
+    <script>
+        let supabaseClient = null;
+        let currentTestRequestId = null;
+        let currentUser = null;
+
+        // Initialize Supabase client
+        async function initSupabase() {
+            try {
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+
+                if (!config.supabaseUrl || !config.supabaseKey) {
+                    throw new Error('Supabase configuration is missing');
+                }
+
+                supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+
+                // Check current user
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                currentUser = user;
+            } catch (error) {
+                console.error('Error initializing Supabase:', error);
+                showError('Failed to initialize application');
+            }
+        }
+
+        // Get test request ID from URL
+        function getTestRequestId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        // Load test request details
+        async function loadTestRequest() {
+            currentTestRequestId = getTestRequestId();
+
+            if (!currentTestRequestId) {
+                showError('No test request ID provided');
+                return;
+            }
+
+            try {
+                const { data: testRequest, error } = await supabaseClient
+                    .from('test_requests')
+                    .select('*')
+                    .eq('id', currentTestRequestId)
+                    .single();
+
+                if (error) throw error;
+
+                if (!testRequest) {
+                    showError('Test request not found');
+                    return;
+                }
+
+                displayTestRequest(testRequest);
+                setupSocialSharing(testRequest);
+                loadComments();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading test request:', error);
+                showError('Failed to load test request details');
+            }
+        }
+
+        // Display test request details
+        function displayTestRequest(testRequest) {
+            const brandName = testRequest.brand_name || 'Unknown Brand';
+            const productName = testRequest.product_name || 'Unknown Product';
+
+            document.getElementById('brand-name').textContent = brandName;
+            document.getElementById('product-name').textContent = productName;
+            document.getElementById('barcode').textContent = testRequest.barcode || 'N/A';
+
+            // Update page title
+            const pageTitle = `${brandName} ${productName} - Food Safety Testing`;
+            document.getElementById('page-title').textContent = pageTitle;
+            document.getElementById('main-title').textContent = `${brandName} ${productName}`;
+
+            // Display test types
+            const testTypesContainer = document.getElementById('test-types');
+            const testTypes = testRequest.test_types || [];
+            testTypesContainer.innerHTML = testTypes.map(type =>
+                `<span class="test-type-badge">${type}</span>`
+            ).join('');
+
+            // Display funding progress
+            const pledgedAmount = testRequest.pledged_amount || 0;
+            const goalAmount = testRequest.goal_amount || 0;
+            const percentage = goalAmount > 0 ? Math.round((pledgedAmount / goalAmount) * 100) : 0;
+
+            document.getElementById('progress-fill').style.width = `${percentage}%`;
+            document.getElementById('progress-text').textContent = `$${pledgedAmount}`;
+            document.getElementById('pledged-amount').textContent = `$${pledgedAmount} pledged`;
+            document.getElementById('goal-amount').textContent = `of $${goalAmount} goal`;
+        }
+
+        // Setup social sharing links
+        function setupSocialSharing(testRequest) {
+            const url = window.location.href;
+            const brandName = testRequest.brand_name || 'Unknown Brand';
+            const productName = testRequest.product_name || 'Unknown Product';
+            const title = `Support food safety testing for ${brandName} ${productName}`;
+            const description = `Help fund testing for ${testRequest.test_types?.join(', ') || 'food safety'} in this product.`;
+
+            // Update meta tags
+            document.getElementById('og-title').setAttribute('content', title);
+            document.getElementById('og-description').setAttribute('content', description);
+            document.getElementById('og-url').setAttribute('content', url);
+            document.getElementById('twitter-title').setAttribute('content', title);
+            document.getElementById('twitter-description').setAttribute('content', description);
+
+            // Twitter
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
+            document.getElementById('share-twitter').href = twitterUrl;
+
+            // Facebook
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+            document.getElementById('share-facebook').href = facebookUrl;
+
+            // LinkedIn
+            const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+            document.getElementById('share-linkedin').href = linkedinUrl;
+        }
+
+        // Copy link to clipboard
+        function copyLink() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Link copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy link:', err);
+            });
+        }
+
+        // Make a pledge
+        async function makePledge() {
+            if (!currentUser) {
+                alert('Please sign in to make a pledge');
+                window.location.href = '/auth.html';
+                return;
+            }
+
+            const amount = parseInt(document.getElementById('pledge-amount').value);
+            const status = document.getElementById('pledge-status');
+
+            if (!amount || amount < 1) {
+                status.textContent = 'Please enter a valid amount';
+                status.className = 'status error';
+                return;
+            }
+
+            status.textContent = 'Processing pledge...';
+            status.className = 'status';
+
+            try {
+                // Insert pledge
+                const { error: pledgeError } = await supabaseClient
+                    .from('pledges')
+                    .insert([{
+                        test_request_id: currentTestRequestId,
+                        user_id: currentUser.id,
+                        amount: amount,
+                        status: 'pending'
+                    }]);
+
+                if (pledgeError) throw pledgeError;
+
+                // Update test request pledged amount
+                const { data: currentRequest } = await supabaseClient
+                    .from('test_requests')
+                    .select('pledged_amount')
+                    .eq('id', currentTestRequestId)
+                    .single();
+
+                const newPledgedAmount = (currentRequest?.pledged_amount || 0) + amount;
+
+                const { error: updateError } = await supabaseClient
+                    .from('test_requests')
+                    .update({ pledged_amount: newPledgedAmount })
+                    .eq('id', currentTestRequestId);
+
+                if (updateError) throw updateError;
+
+                status.textContent = 'Pledge successful! Thank you for your support.';
+                status.className = 'status success';
+
+                // Clear input
+                document.getElementById('pledge-amount').value = '';
+
+                // Reload test request to update progress
+                setTimeout(() => {
+                    loadTestRequest();
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error making pledge:', error);
+                status.textContent = 'Failed to process pledge. Please try again.';
+                status.className = 'status error';
+            }
+        }
+
+        // Load comments
+        async function loadComments() {
+            try {
+                const { data: comments, error } = await supabaseClient
+                    .from('test_request_comments')
+                    .select('*, profiles(email)')
+                    .eq('test_request_id', currentTestRequestId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                displayComments(comments || []);
+
+            } catch (error) {
+                console.error('Error loading comments:', error);
+                document.getElementById('comments-list').innerHTML =
+                    '<p style="color: #000000;">Failed to load comments.</p>';
+            }
+        }
+
+        // Display comments
+        function displayComments(comments) {
+            const commentsList = document.getElementById('comments-list');
+
+            if (comments.length === 0) {
+                commentsList.innerHTML = '<p style="color: #000000;">No comments yet. Be the first to comment!</p>';
+                return;
+            }
+
+            commentsList.innerHTML = comments.map(comment => {
+                const author = comment.profiles?.email || 'Anonymous';
+                const date = new Date(comment.created_at).toLocaleDateString();
+                return `
+                    <div class="comment">
+                        <div class="comment-header">
+                            <span class="comment-author">${author}</span>
+                            <span class="comment-date">${date}</span>
+                        </div>
+                        <div class="comment-text">${escapeHtml(comment.comment_text)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Add a comment
+        async function addComment() {
+            if (!currentUser) {
+                alert('Please sign in to comment');
+                window.location.href = '/auth.html';
+                return;
+            }
+
+            const commentText = document.getElementById('comment-text').value.trim();
+            const status = document.getElementById('comment-status');
+
+            if (!commentText) {
+                status.textContent = 'Please enter a comment';
+                status.className = 'status error';
+                return;
+            }
+
+            status.textContent = 'Posting comment...';
+            status.className = 'status';
+
+            try {
+                const { error } = await supabaseClient
+                    .from('test_request_comments')
+                    .insert([{
+                        test_request_id: currentTestRequestId,
+                        user_id: currentUser.id,
+                        comment_text: commentText
+                    }]);
+
+                if (error) throw error;
+
+                status.textContent = 'Comment posted successfully!';
+                status.className = 'status success';
+
+                // Clear textarea
+                document.getElementById('comment-text').value = '';
+
+                // Reload comments
+                setTimeout(() => {
+                    loadComments();
+                    status.textContent = '';
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error posting comment:', error);
+                status.textContent = 'Failed to post comment. Please try again.';
+                status.className = 'status error';
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Show error
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error-container').style.display = 'block';
+            document.getElementById('error-container').innerHTML = `
+                <div class="error-message">
+                    <p>${message}</p>
+                    <button class="btn btn-secondary" onclick="goBack()">Back to Home</button>
+                </div>
+            `;
+        }
+
+        // Go back to home
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            await initSupabase();
+            await loadTestRequest();
+        });
+    </script>
+</body>
+</html>

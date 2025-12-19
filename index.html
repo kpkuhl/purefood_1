@@ -89,6 +89,14 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 1rem;
+            border: 2px solid #000000;
+        }
+        .request-card h3 {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .request-card h3:hover {
+            color: #000000;
         }
         .request-header {
             margin-bottom: 1rem;
@@ -458,7 +466,7 @@
                     return `
                         <div class="request-card">
                             <div class="request-header">
-                                <h3>${request.product_name || 'Unknown Product'}</h3>
+                                <h3 onclick="window.location.href='/test-request-detail.html?id=${request.id}'">${request.product_name || 'Unknown Product'}</h3>
                                 <p><strong>Brand:</strong> ${request.brand || 'Unknown'}</p>
                                 <p><strong>Tests:</strong> ${testTypesDisplay || 'Not specified'}</p>
                             </div>

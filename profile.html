@@ -60,6 +60,11 @@
             margin: 0 0 0.5rem 0;
             color: #000000;
             font-size: 1.2rem;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .request-card h3:hover {
+            color: #000000;
         }
         .request-card p {
             margin: 0.25rem 0;
@@ -445,7 +450,7 @@
                     return `
                         <div class="request-card">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                                <h3>${request.product_name || 'Unknown Product'}</h3>
+                                <h3 onclick="window.location.href='/test-request-detail.html?id=${request.id}'">${request.product_name || 'Unknown Product'}</h3>
                                 <span class="status-badge ${statusClass}">${statusText}</span>
                             </div>
                             <p><strong>Brand:</strong> ${request.brand || 'Unknown'}</p>
@@ -520,7 +525,7 @@
                         return `
                             <div class="request-card">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                                    <h3>${testRequest?.product_name || 'Unknown Product'}</h3>
+                                    <h3 onclick="window.location.href='/test-request-detail.html?id=${testRequest?.id}'">${testRequest?.product_name || 'Unknown Product'}</h3>
                                     <span class="status-badge ${statusClass}">${statusText}</span>
                                 </div>
                                 <p><strong>Brand:</strong> ${testRequest?.brand || 'Unknown'}</p>
