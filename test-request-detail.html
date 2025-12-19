@@ -399,7 +399,7 @@
 
         // Display test request details
         function displayTestRequest(testRequest) {
-            const brandName = testRequest.brand_name || 'Unknown Brand';
+            const brandName = testRequest.brand || 'Unknown Brand';
             const productName = testRequest.product_name || 'Unknown Product';
 
             document.getElementById('brand-name').textContent = brandName;
@@ -413,29 +413,72 @@
 
             // Display test types
             const testTypesContainer = document.getElementById('test-types');
-            const testTypes = testRequest.test_types || [];
+            let testTypes = testRequest.test_types || [];
+
+            // Parse JSON if it's a string
+            if (typeof testTypes === 'string') {
+                try {
+                    testTypes = JSON.parse(testTypes);
+                } catch (e) {
+                    console.error('Error parsing test_types:', e);
+                    testTypes = [];
+                }
+            }
+
+            // Map test type codes to display names
+            const testTypeLabels = {
+                'heavy_metals': 'Heavy Metals',
+                'pesticides': 'Pesticides',
+                'pfas': 'PFAS',
+                'microplastics': 'Microplastics'
+            };
+
             testTypesContainer.innerHTML = testTypes.map(type =>
-                `<span class="test-type-badge">${type}</span>`
+                `<span class="test-type-badge">${testTypeLabels[type] || type}</span>`
             ).join('');
 
             // Display funding progress
-            const pledgedAmount = testRequest.pledged_amount || 0;
-            const goalAmount = testRequest.goal_amount || 0;
-            const percentage = goalAmount > 0 ? Math.round((pledgedAmount / goalAmount) * 100) : 0;
+            const currentFunding = testRequest.current_funding || 0;
+            const testCost = testRequest.test_cost || 0;
+            const percentage = testCost > 0 ? Math.round((currentFunding / testCost) * 100) : 0;
+
+            // Convert cents to dollars
+            const currentFundingDollars = (currentFunding / 100).toFixed(2);
+            const testCostDollars = (testCost / 100).toFixed(2);
 
             document.getElementById('progress-fill').style.width = `${percentage}%`;
-            document.getElementById('progress-text').textContent = `$${pledgedAmount}`;
-            document.getElementById('pledged-amount').textContent = `$${pledgedAmount} pledged`;
-            document.getElementById('goal-amount').textContent = `of $${goalAmount} goal`;
+            document.getElementById('progress-text').textContent = `$${currentFundingDollars}`;
+            document.getElementById('pledged-amount').textContent = `$${currentFundingDollars} pledged`;
+            document.getElementById('goal-amount').textContent = `of $${testCostDollars} goal`;
         }
 
         // Setup social sharing links
         function setupSocialSharing(testRequest) {
             const url = window.location.href;
-            const brandName = testRequest.brand_name || 'Unknown Brand';
+            const brandName = testRequest.brand || 'Unknown Brand';
             const productName = testRequest.product_name || 'Unknown Product';
+
+            // Parse test types if needed
+            let testTypes = testRequest.test_types || [];
+            if (typeof testTypes === 'string') {
+                try {
+                    testTypes = JSON.parse(testTypes);
+                } catch (e) {
+                    testTypes = [];
+                }
+            }
+
+            const testTypeLabels = {
+                'heavy_metals': 'Heavy Metals',
+                'pesticides': 'Pesticides',
+                'pfas': 'PFAS',
+                'microplastics': 'Microplastics'
+            };
+
+            const testTypesDisplay = testTypes.map(type => testTypeLabels[type] || type).join(', ') || 'food safety';
+
             const title = `Support food safety testing for ${brandName} ${productName}`;
-            const description = `Help fund testing for ${testRequest.test_types?.join(', ') || 'food safety'} in this product.`;
+            const description = `Help fund testing for ${testTypesDisplay} in this product.`;
 
             // Update meta tags
             document.getElementById('og-title').setAttribute('content', title);
