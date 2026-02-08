@@ -36,7 +36,6 @@ PureFood is a crowdfunding platform that enables consumers to collectively fund 
 
 ### Prerequisites
 
-- Node.js (for local development)
 - Supabase account
 - Stripe account
 
@@ -68,22 +67,7 @@ git clone https://github.com/kpkuhl/purefood_1.git
 cd purefood_1
 ```
 
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Set up your environment variables (see above)
-
-4. Deploy serverless functions to Vercel or run locally with Vercel CLI:
-
-```bash
-npm install -g vercel
-vercel dev
-```
-
-5. Open your browser to `http://localhost:3000`
+2. Open `index.html` in your web browser
 
 ## Project Structure
 
